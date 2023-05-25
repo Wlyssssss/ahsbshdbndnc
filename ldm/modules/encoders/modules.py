@@ -205,8 +205,10 @@ class FrozenOpenCLIPEmbedder(AbstractEncoder):
                  freeze=True, layer="last"):
         super().__init__()
         assert layer in self.LAYERS
+        print("Start initializing the CLIP text encoder")
         model, _, _ = open_clip.create_model_and_transforms(arch, device=torch.device('cpu'), pretrained=version)
-        aa = model.encode_image(torch.zeros((1, 3,224,224)))
+        print("Initialization ends")
+        # aa = model.encode_image(torch.zeros((1, 3,224,224)))
         del model.visual
         self.model = model
 
