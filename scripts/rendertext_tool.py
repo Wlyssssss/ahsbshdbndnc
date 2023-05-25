@@ -40,7 +40,8 @@ def load_model_from_config(cfg, ckpt, verbose=False, not_use_ckpt=False):
             print("unexpected keys: {}".format(len(u)))
             print(u)
 
-    model.cuda()
+    if torch.cuda.is_available():
+        model.cuda() 
     model.eval()
     return model
 
@@ -99,7 +100,9 @@ class Render_Text:
                 if only_show_rendered_image:
                     return [whiteboard_img]
                 
-                control = self.transform(whiteboard_img.copy()).cuda()
+                control = self.transform(whiteboard_img.copy())
+                if torch.cuda.is_available():
+                    control = control.cuda()
                 control = torch.stack([control for _ in range(shared_num_samples)], dim=0)
                 control = control.clone()
                 control = [control]
