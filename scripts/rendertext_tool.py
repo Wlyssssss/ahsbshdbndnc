@@ -14,6 +14,12 @@ from torchvision.transforms import ToTensor
 from contextlib import nullcontext
 
 def load_model_from_config(cfg, ckpt, verbose=False, not_use_ckpt=False):
+
+    if "model_ema.input_blocks10in_layers0weight" not in sd:
+        print("missing model_ema.input_blocks10in_layers0weight. set use_ema as False")
+        cfg.model.params.use_ema = False 
+    model = instantiate_from_config(cfg.model)
+
     if ckpt.endswith("model_states.pt"):
         sd = torch.load(ckpt, map_location='cpu')["module"]
     else:
@@ -25,12 +31,7 @@ def load_model_from_config(cfg, ckpt, verbose=False, not_use_ckpt=False):
             nk = k[7:]
             sd[nk] = sd[k]
             del sd[k]
-
-    if "model_ema.input_blocks10in_layers0weight" not in sd:
-        print("missing model_ema.input_blocks10in_layers0weight. set use_ema as False")
-        cfg.model.params.use_ema = False 
-    model = instantiate_from_config(cfg.model)
-
+            
     if not not_use_ckpt:
         m, u = model.load_state_dict(sd, strict=False)
         if len(m) > 0 and verbose:
