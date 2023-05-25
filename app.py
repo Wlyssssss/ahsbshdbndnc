@@ -66,11 +66,11 @@ def process_multi_wrapper_only_show_rendered(rendered_txt_0, rendered_txt_1, ren
                                      shared_eta, shared_a_prompt, shared_n_prompt, 
                                      only_show_rendered_image=True)  
 
-# cfg = OmegaConf.load("config.yaml")
-# model = load_model_from_config(cfg, "model_states.pt", verbose=True)
 
 cfg = OmegaConf.load("config.yaml")
-model = load_model_from_config(cfg, "model.ckpt", verbose=True)
+model = load_model_from_config(cfg, "model_wo_ema.ckpt", verbose=True)
+# model = load_model_from_config(cfg, "model_states.pt", verbose=True)
+# model = load_model_from_config(cfg, "model.ckpt", verbose=True)
 
 ddim_sampler = DDIMSampler(model)
 render_tool = Render_Text(model)
