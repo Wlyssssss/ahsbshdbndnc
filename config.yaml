@@ -85,3 +85,4 @@ model:
       params:
         freeze: True
         layer: "penultimate"
+        device: "cpu"
