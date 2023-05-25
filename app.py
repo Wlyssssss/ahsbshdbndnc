@@ -3,7 +3,7 @@ import math
 from omegaconf import OmegaConf
 from scripts.rendertext_tool import Render_Text, load_model_from_config
 import gradio as gr  
-
+import os
 def process_multi_wrapper(rendered_txt_0, rendered_txt_1, rendered_txt_2, rendered_txt_3,
                             shared_prompt,  
                             width_0, width_1, width_2, width_3,  
