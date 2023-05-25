@@ -75,11 +75,28 @@ model = load_model_from_config(cfg, "model_wo_ema.ckpt", verbose=True)
 ddim_sampler = DDIMSampler(model)
 render_tool = Render_Text(model)
 
+
+# description = """
+# #  <center>Expedit-SAM (Expedite Segment Anything Model without any training)</center>
+# Github link: [Link](https://github.com/Expedit-LargeScale-Vision-Transformer/Expedit-SAM)
+# You can select the speed mode you want to use from the "Speed Mode" dropdown menu and click "Run" to segment the image you uploaded to the "Input Image" box.
+# Points per side is a hyper-parameter that controls the number of points used to generate the segmentation masks. The higher the number, the more accurate the segmentation masks will be, but the slower the inference speed will be. The default value is 12.
+# """
+
+description = """
+## Control Stable Diffusion with Glyph Images
+"""
+
+SPACE_ID = os.getenv('SPACE_ID')
+if SPACE_ID is not None:
+    # description += f'\n<p>For faster inference without waiting in queue, you may duplicate the space and upgrade to GPU in settings. < a href=" ">< img style="display: inline; margin-top: 0em; margin-bottom: 0em" src="https://bit.ly/3gLdBN6" alt="Duplicate Space" /></ a></p >'
+    description += f'\n<p>For faster inference without waiting in queue, you may duplicate the space and upgrade to GPU in settings. <a href="https://huggingface.co/spaces/{SPACE_ID}?duplicate=true"><img style="display: inline; margin-top: 0em; margin-bottom: 0em" src="https://bit.ly/3gLdBN6" alt="Duplicate Space" /></a></p>'
+
 block = gr.Blocks().queue()  
 
 with block:  
     with gr.Row():  
-        gr.Markdown("## Control Stable Diffusion with Glyph Images")  
+        gr.Markdown(description)  
         only_show_rendered_image = gr.Number(value=1, visible=False)
         
     with gr.Column():  
