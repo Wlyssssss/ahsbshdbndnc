@@ -67,7 +67,7 @@ def process_multi_wrapper_only_show_rendered(rendered_txt_0, rendered_txt_1, ren
                                      only_show_rendered_image=True)  
 
 
-cfg = OmegaConf.load("config_cuda.yaml")
+cfg = OmegaConf.load("config.yaml")
 model = load_model_from_config(cfg, "model_wo_ema.ckpt", verbose=True)
 # model = load_model_from_config(cfg, "model_states.pt", verbose=True)
 # model = load_model_from_config(cfg, "model.ckpt", verbose=True)
