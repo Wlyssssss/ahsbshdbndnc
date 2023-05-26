@@ -67,7 +67,7 @@ def process_multi_wrapper_only_show_rendered(rendered_txt_0, rendered_txt_1, ren
                                      only_show_rendered_image=True)  
 
 
-cfg = OmegaConf.load("config.yaml")
+cfg = OmegaConf.load("config_cuda.yaml")
 model = load_model_from_config(cfg, "model_wo_ema.ckpt", verbose=True)
 # model = load_model_from_config(cfg, "model_states.pt", verbose=True)
 # model = load_model_from_config(cfg, "model.ckpt", verbose=True)
@@ -104,15 +104,15 @@ with block:
         with gr.Row(): 
             for i in range(4):  
                 with gr.Column():  
-                    exec(f"""rendered_txt_{i} = gr.Textbox(label=f"rendered_txt {i+1}")""")
+                    exec(f"""rendered_txt_{i} = gr.Textbox(label=f"Render Text {i+1}")""")
                     
                     with gr.Accordion(f"Advanced options {i+1}", open=False):  
-                        exec(f"""width_{i} = gr.Slider(label="bbox_width", minimum=0., maximum=1, value=0.3, step=0.01)  """)
-                        exec(f"""ratio_{i} = gr.Slider(label="bbox_width_height_ratio", minimum=0., maximum=5, value=0., step=0.02)  """)
-                        exec(f"""top_left_x_{i} = gr.Slider(label="bbox_top_left_x", minimum=0., maximum=1, value={0.35 - 0.25 * math.cos(math.pi * i)}, step=0.01)  """)
-                        exec(f"""top_left_y_{i} = gr.Slider(label="bbox_top_left_y", minimum=0., maximum=1, value={0.1 if i < 2 else 0.6}, step=0.01)  """)
-                        exec(f"""yaw_{i} = gr.Slider(label="bbox_yaw", minimum=-180, maximum=180, value=0, step=5) """)
-                        exec(f"""num_rows_{i} = gr.Slider(label="num_rows", minimum=1, maximum=4, value=1, step=1)  """)
+                        exec(f"""width_{i} = gr.Slider(label="Bbox Width", minimum=0., maximum=1, value=0.3, step=0.01)  """)
+                        exec(f"""ratio_{i} = gr.Slider(label="Bbox_width_height_ratio", minimum=0., maximum=5, value=0., step=0.02, visible=False)  """)
+                        exec(f"""top_left_x_{i} = gr.Slider(label="Bbox Top Left x", minimum=0., maximum=1, value={0.35 - 0.25 * math.cos(math.pi * i)}, step=0.01)  """)
+                        exec(f"""top_left_y_{i} = gr.Slider(label="Bbox Top Left y", minimum=0., maximum=1, value={0.1 if i < 2 else 0.6}, step=0.01)  """)
+                        exec(f"""yaw_{i} = gr.Slider(label="Bbox Yaw", minimum=-180, maximum=180, value=0, step=5) """)
+                        exec(f"""num_rows_{i} = gr.Slider(label="num_rows", minimum=1, maximum=4, value=1, step=1, visible=False)  """)
         
         with gr.Row(): 
             with gr.Column():
@@ -122,17 +122,20 @@ with block:
                     show_render_button = gr.Button(value="Only Rendered")
             
             with gr.Accordion("Shared Advanced options", open=False):  
-                shared_num_samples = gr.Slider(label="Images", minimum=1, maximum=12, value=1, step=1)  
-                shared_image_resolution = gr.Slider(label="Image Resolution", minimum=256, maximum=768, value=512, step=64)  
-                shared_strength = gr.Slider(label="Control Strength", minimum=0.0, maximum=2.0, value=1.0, step=0.01)  
-                shared_guess_mode = gr.Checkbox(label='Guess Mode', value=False)  
-                shared_scale = gr.Slider(label="Guidance Scale", minimum=0.1, maximum=30.0, value=9.0, step=0.1)  
-                shared_ddim_steps = gr.Slider(label="Steps", minimum=1, maximum=100, value=20, step=1)  
-                shared_seed = gr.Slider(label="Seed", minimum=-1, maximum=2147483647, step=1, randomize=True)  
-                shared_eta = gr.Number(label="eta (DDIM)", value=0.0)  
-                shared_a_prompt = gr.Textbox(label="Added Prompt", value='best quality, extremely detailed')  
-                shared_n_prompt = gr.Textbox(label="Negative Prompt",  
-                                        value='longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality') 
+                with gr.Row():
+                    shared_num_samples = gr.Slider(label="Images", minimum=1, maximum=12, value=1, step=1)  
+                    shared_image_resolution = gr.Slider(label="Image Resolution", minimum=256, maximum=768, value=512, step=64, visible=False)  
+                    shared_strength = gr.Slider(label="Control Strength", minimum=0.0, maximum=2.0, value=1.0, step=0.01, visible=False)  
+                    shared_guess_mode = gr.Checkbox(label='Guess Mode', value=False, visible=False)  
+                    shared_seed = gr.Slider(label="Seed", minimum=-1, maximum=2147483647, step=1, randomize=True)
+                with gr.Row():
+                    shared_scale = gr.Slider(label="Guidance Scale", minimum=0.1, maximum=30.0, value=9.0, step=0.1)  
+                    shared_ddim_steps = gr.Slider(label="Steps", minimum=1, maximum=100, value=20, step=1)    
+                    shared_eta = gr.Number(label="eta (DDIM)", value=0.0, visible=False)  
+                with gr.Row():
+                    shared_a_prompt = gr.Textbox(label="Added Prompt", value='best quality, extremely detailed')  
+                    shared_n_prompt = gr.Textbox(label="Negative Prompt",  
+                                            value='longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality') 
         
         with gr.Row(): 
             result_gallery = gr.Gallery(label='Output', show_label=False, elem_id="gallery").style(grid=2, height='auto')  
