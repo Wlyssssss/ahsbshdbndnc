@@ -72,7 +72,6 @@ class Render_Text:
             self.precision_scope("cuda"), \
             self.model.ema_scope("Sampling on Benchmark Prompts"):
             print("rendered txt:", str(rendered_txt_values), "[t]")
-            print("prompt for the SD branch:", str(shared_prompt), "[t]")
             if rendered_txt_values == "":
                 control = None
             else:
@@ -115,7 +114,7 @@ class Render_Text:
             seed_everything(shared_seed)
 
             print("control is None: {}".format(control is None))
-                
+            print("prompt for the SD branch:", str(shared_prompt), "[t]")
             cond_c_cross = self.model.get_learned_conditioning([shared_prompt + ', ' + shared_a_prompt] * shared_num_samples)
             un_cond_cross = self.model.get_learned_conditioning([shared_n_prompt] * shared_num_samples)
             
