@@ -85,4 +85,4 @@ model:
       params:
         freeze: True
         layer: "penultimate"
-        device: "cpu" #TODO: specify
+        # device: "cpu" #TODO: specify

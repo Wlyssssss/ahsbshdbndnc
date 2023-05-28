@@ -118,34 +118,6 @@ class FrozenT5Embedder(AbstractEncoder):
     def encode(self, text):
         return self(text)
 
-# class FrozenByT5Embedder(FrozenT5Embedder):
-#     """Uses the ByT5 transformer encoder for text"""
-#     def __init__(self, version="google/byt5-small", device="cuda", max_length=77, freeze=True):  # others are google/byt5-v1_1-xl and google/t5-v1_1-xxl
-#         # super(super()).__init__()
-#         nn.Module.__init__(self)
-#         print(dir(super()))
-#         # self.tokenizer = T5Tokenizer.from_pretrained(version)
-#         # self.transformer = T5EncoderModel.from_pretrained(version)
-#         self.tokenizer = AutoTokenizer.from_pretrained(version)
-#         self.model = T5ForConditionalGeneration.from_pretrained(version)
-#         self.tokenizer_new = ByT5Tokenizer.from_pretrained(version)
-#         self.transformer = T5EncoderModel.from_pretrained(version)
-#         self.device = device 
-#         self.max_length = max_length   # TODO: typical value?
-#         if freeze:
-#             self.freeze()
-    
-#     def forward(self, text):
-#         # code base: https://github.com/huggingface/transformers/blob/v4.24.0/src/transformers/tokenization_utils_base.py#L2414
-#         batch_encoding = self.tokenizer(text, truncation=True, max_length=self.max_length, return_length=True,
-#                                         return_overflowing_tokens=False, padding="max_length", return_tensors="pt")
-#         tokens = batch_encoding["input_ids"].to(self.device)
-#         outputs = self.transformer(input_ids=tokens)
-
-#         z = outputs.last_hidden_state
-#         return z
-
-
 class FrozenCLIPEmbedder(AbstractEncoder):
     """Uses the CLIP transformer encoder for text (from huggingface)"""
     LAYERS = [
@@ -211,8 +183,12 @@ class FrozenOpenCLIPEmbedder(AbstractEncoder):
         # aa = model.encode_image(torch.zeros((1, 3,224,224)))
         del model.visual
         self.model = model
-
-        self.device = device
+       
+        if not torch.cuda.is_available():
+            self.device = "cpu"
+        else:
+            self.device = device
+            
         self.max_length = max_length
         if freeze:
             self.freeze()
@@ -439,12 +415,6 @@ class FrozenOpenCLIPT5ByT5SepEncoder(FrozenOpenCLIPT5ByT5Encoder):
             clip_text = text[0]
             t5_text = text[1] if len(text) > 1 else text[0]
             byt5_text = text[-1]
-            # clip_z = self.clip_encoder.encode(text[0]) #B*77*1024
-            # t5_z = self.t5_encoder.encode(text[1]) #B*77*Z_1
-            # if len(text) == 2:    
-            #     byt5_z = self.byt5_encoder.encode(text[1]) #B*77*Z_2
-            # else:
-            #     byt5_z = self.byt5_encoder.encode(text[2]) #B*77*Z_2
         else:
             clip_text = text
             t5_text = text
@@ -460,17 +430,10 @@ class OpenCLIPImageEmbedder(AbstractEncoder):
     """
     Uses the OpenCLIP transformer encoder for image
     """
-    # LAYERS = [
-    #     #"pooled",
-    #     "last",
-    #     "penultimate"
-    # ]
-    def __init__(self, arch="ViT-H-14", version="laion2b_s32b_b79k", device="cuda", #stage = "train", # max_length=77, layer = "last", 
+    def __init__(self, arch="ViT-H-14", version="laion2b_s32b_b79k", device="cuda", 
                  freeze=True, set_grad_checkpointing = True):
         super().__init__()
-        # assert layer in self.LAYERS
         model, preprocess_train, preprocess_val = open_clip.create_model_and_transforms(arch, device=torch.device('cpu'), pretrained=version)
-        # del model.visual
         self.image_mean = model.visual.image_mean
         self.image_std = model.visual.image_std
         del model.transformer
@@ -480,29 +443,16 @@ class OpenCLIPImageEmbedder(AbstractEncoder):
         del model.text_projection
         del model.logit_scale
         # only model.visual is left
-        # open_clip.model._build_vision_tower()
 
         self.model = model
         self.device = device
         
         if not freeze and set_grad_checkpointing:
             self.model.visual.set_grad_checkpointing(True)
-        # if freeze:
-        #     self.freeze()
-        # else:
-        #     if set_grad_checkpointing:
-        #         self.model.visual.set_grad_checkpointing(True)
         self.freeze_model = freeze
-
-    # def freeze(self):
-    #     self.model = self.model.eval()
-    #     for param in self.parameters(): #392
-    #         param.requires_grad = False
 
     def forward(self, img):
         z = self.model.encode_image(img) # 2.0.2 , normalize=False) 2.7.0
-        # tokens = open_clip.tokenize(text)
-        # z = self.encode_with_transformer(tokens.to(self.device))
         return z
 
     def encode(self, img):
