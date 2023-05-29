@@ -46,6 +46,31 @@ def load_model_from_config(cfg, ckpt, verbose=False, not_use_ckpt=False):
     model.eval()
     return model
 
+def load_model_ckpt(model, ckpt, verbose=True):
+    map_location = "cpu" if not torch.cuda.is_available() else "cuda"
+    print("checkpoint map location:", map_location)
+    if ckpt.endswith("model_states.pt"):
+        sd = torch.load(ckpt, map_location=map_location)["module"]
+    else:
+        sd = load_state_dict(ckpt, location=map_location)
+   
+    keys_ = list(sd.keys())[:]
+    for k in keys_:
+        if k.startswith("module."):
+            nk = k[7:]
+            sd[nk] = sd[k]
+            del sd[k]
+
+    m, u = model.load_state_dict(sd, strict=False)
+    if len(m) > 0 and verbose:
+        print("missing keys: {}".format(len(m)))
+        print(m)
+    if len(u) > 0 and verbose:
+        print("unexpected keys: {}".format(len(u)))
+        print(u)
+    model.eval()
+    return model
+
 class Render_Text:
     def __init__(self, 
         model,

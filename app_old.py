@@ -1,12 +1,9 @@
 from cldm.ddim_hacked import DDIMSampler
 import math
 from omegaconf import OmegaConf
-from scripts.rendertext_tool import Render_Text, load_model_from_config, load_model_ckpt
+from scripts.rendertext_tool import Render_Text, load_model_from_config
 import gradio as gr  
 import os
-import torch
-import time
-
 def process_multi_wrapper(rendered_txt_0, rendered_txt_1, rendered_txt_2, rendered_txt_3,
                             shared_prompt,  
                             width_0, width_1, width_2, width_3,  
@@ -18,7 +15,7 @@ def process_multi_wrapper(rendered_txt_0, rendered_txt_1, rendered_txt_2, render
                             shared_num_samples, shared_image_resolution,  
                             shared_ddim_steps, shared_guess_mode,  
                             shared_strength, shared_scale, shared_seed,  
-                            shared_eta, shared_a_prompt, shared_n_prompt, ):  
+                            shared_eta, shared_a_prompt, shared_n_prompt):  
     
     rendered_txt_values = [rendered_txt_0, rendered_txt_1, rendered_txt_2, rendered_txt_3]  
     width_values = [width_0, width_1, width_2, width_3]  
@@ -69,34 +66,22 @@ def process_multi_wrapper_only_show_rendered(rendered_txt_0, rendered_txt_1, ren
                                      shared_eta, shared_a_prompt, shared_n_prompt, 
                                      only_show_rendered_image=True)  
 
-def load_ckpt(model_ckpt = "LAION-Glyph-10M"):
-    global render_tool, model
-    if torch.cuda.is_available():
-        for i in range(5):
-            torch.cuda.empty_cache()
-        time.sleep(2)
-        print("empty the cuda cache")
-
-    if model_ckpt == "LAION-Glyph-1M":
-        model = load_model_ckpt(model, "laion1M_model_wo_ema.ckpt")
-    elif model_ckpt == "LAION-Glyph-10M":
-        model = load_model_ckpt(model, "model_wo_ema.ckpt")
-    render_tool = Render_Text(model)
-    output_str = f"already change the model checkpoint to {model_ckpt}"
-    print(output_str)
-    if torch.cuda.is_available():
-        for i in range(5):
-            torch.cuda.empty_cache()
-        time.sleep(2)
-        print("empty the cuda cache")
 
 cfg = OmegaConf.load("config.yaml")
 model = load_model_from_config(cfg, "model_wo_ema.ckpt", verbose=True)
 # model = load_model_from_config(cfg, "model_states.pt", verbose=True)
 # model = load_model_from_config(cfg, "model.ckpt", verbose=True)
-# ddim_sampler = DDIMSampler(model)
+
+ddim_sampler = DDIMSampler(model)
 render_tool = Render_Text(model)
 
+
+# description = """
+# #  <center>Expedit-SAM (Expedite Segment Anything Model without any training)</center>
+# Github link: [Link](https://github.com/Expedit-LargeScale-Vision-Transformer/Expedit-SAM)
+# You can select the speed mode you want to use from the "Speed Mode" dropdown menu and click "Run" to segment the image you uploaded to the "Input Image" box.
+# Points per side is a hyper-parameter that controls the number of points used to generate the segmentation masks. The higher the number, the more accurate the segmentation masks will be, but the slower the inference speed will be. The default value is 12.
+# """
 
 description = """
 ## Control Stable Diffusion with Glyph Images
@@ -136,13 +121,8 @@ with block:
                 with gr.Row():
                     run_button = gr.Button(value="Run")
                     show_render_button = gr.Button(value="Only Rendered")
-                with gr.Accordion("Model Options", open=False):
-                    with gr.Row():
-                        # model_ckpt = gr.inputs.Dropdown(["LAION-Glyph-10M", "Textcaps5K-10"], label="Checkpoint", default = "LAION-Glyph-10M")
-                        model_ckpt = gr.inputs.Dropdown(["LAION-Glyph-10M", "LAION-Glyph-1M"], label="Checkpoint", default = "LAION-Glyph-10M")
-                        load_button = gr.Button(value = "Load Checkpoint")
             
-            with gr.Accordion("Shared Advanced Options", open=False):  
+            with gr.Accordion("Shared Advanced options", open=False):  
                 with gr.Row():
                     shared_num_samples = gr.Slider(label="Images", minimum=1, maximum=12, value=1, step=1)  
                     shared_image_resolution = gr.Slider(label="Image Resolution", minimum=256, maximum=768, value=512, step=64, visible=False)  
@@ -190,10 +170,7 @@ with block:
                         shared_strength, shared_scale, shared_seed,  
                         shared_eta, shared_a_prompt, shared_n_prompt],  
                 outputs=[result_gallery]) 
-    
-    load_button.click(fn = load_ckpt,
-                inputs = [model_ckpt],
-                outputs = [result_gallery]
-    )
+
+
 
     block.launch()
