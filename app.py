@@ -22,7 +22,7 @@ def process_multi_wrapper(rendered_txt_0, rendered_txt_1, rendered_txt_2, render
                             shared_eta, shared_a_prompt, shared_n_prompt):  
     global ALLOW_RUN_GENERATION
     if not ALLOW_RUN_GENERATION:
-        return "Please get the glyph image first by clicking the 'Only Rendered' button", None
+        return "Please get the glyph image first by clicking the 'Render Glyph Image' button", None
 
     rendered_txt_values = [rendered_txt_0, rendered_txt_1, rendered_txt_2, rendered_txt_3]  
     width_values = [width_0, width_1, width_2, width_3]  
