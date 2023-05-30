@@ -84,9 +84,9 @@ def load_ckpt(model_ckpt = "LAION-Glyph-10M-Epoch-5"):
 
     # if model_ckpt == "LAION-Glyph-1M":
     #     model = load_model_ckpt(model, "laion1M_model_wo_ema.ckpt")
-    if model_ckpt == "LAION-Glyph-10M-Epoch-5":
-        model = load_model_ckpt(model, "laion10M_epoch_5_model_wo_ema.ckpt")
-    elif model_ckpt == "LAION-Glyph-10M-Epoch-6":
+    # if model_ckpt == "LAION-Glyph-10M-Epoch-5":
+    #     model = load_model_ckpt(model, "laion10M_epoch_5_model_wo_ema.ckpt")
+    if model_ckpt == "LAION-Glyph-10M-Epoch-6":
         model = load_model_ckpt(model, "laion10M_epoch_6_model_wo_ema.ckpt")
     elif model_ckpt == "TextCaps-5K-Epoch-10":
         model = load_model_ckpt(model, "textcaps5K_epoch_10_model_wo_ema.ckpt")
@@ -161,7 +161,7 @@ with block:
                     with gr.Row():
                         # model_ckpt = gr.inputs.Dropdown(["LAION-Glyph-10M", "Textcaps5K-10"], label="Checkpoint", default = "LAION-Glyph-10M")
                         # model_ckpt = gr.inputs.Dropdown(["LAION-Glyph-10M-Epoch-6", "LAION-Glyph-10M-Epoch-5", "LAION-Glyph-1M"], label="Checkpoint", default = "LAION-Glyph-10M-Epoch-6")
-                        model_ckpt = gr.inputs.Dropdown(["LAION-Glyph-10M-Epoch-6", "LAION-Glyph-10M-Epoch-5", "TextCaps-5K-Epoch-10", "TextCaps-5K-Epoch-20", "TextCaps-5K-Epoch-40"], label="Checkpoint", default = "LAION-Glyph-10M-Epoch-6")
+                        model_ckpt = gr.inputs.Dropdown(["LAION-Glyph-10M-Epoch-6", "TextCaps-5K-Epoch-10", "TextCaps-5K-Epoch-20", "TextCaps-5K-Epoch-40"], label="Checkpoint", default = "LAION-Glyph-10M-Epoch-6")
                         # load_button = gr.Button(value = "Load Checkpoint")
             
             with gr.Accordion("Shared Advanced Options", open=False):  
