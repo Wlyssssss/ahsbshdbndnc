@@ -22,7 +22,7 @@ def process_multi_wrapper(rendered_txt_0, rendered_txt_1, rendered_txt_2, render
                             shared_eta, shared_a_prompt, shared_n_prompt):  
     global ALLOW_RUN_GENERATION
     if not ALLOW_RUN_GENERATION:
-        return 
+        return ["please get the glyph image first by clicking the 'Only Rendered' button"]
 
     rendered_txt_values = [rendered_txt_0, rendered_txt_1, rendered_txt_2, rendered_txt_3]  
     width_values = [width_0, width_1, width_2, width_3]  
@@ -168,7 +168,7 @@ with block:
                                             value='longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality') 
         
         with gr.Row(): 
-            message = gr.outputs.Textbox()
+            # message = gr.outputs.Textbox()
             result_gallery = gr.Gallery(label='Output', show_label=False, elem_id="gallery").style(grid=2, height='auto')  
     
     run_button.click(fn=process_multi_wrapper,  
