@@ -74,7 +74,7 @@ def process_multi_wrapper_only_show_rendered(rendered_txt_0, rendered_txt_1, ren
                                      shared_eta, shared_a_prompt, shared_n_prompt, 
                                      only_show_rendered_image=True)  
 
-def load_ckpt(model_ckpt = "LAION-Glyph-10M"):
+def load_ckpt(model_ckpt = "LAION-Glyph-10M-Epoch-5"):
     global render_tool, model
     if torch.cuda.is_available():
         for i in range(5):
@@ -84,8 +84,11 @@ def load_ckpt(model_ckpt = "LAION-Glyph-10M"):
 
     if model_ckpt == "LAION-Glyph-1M":
         model = load_model_ckpt(model, "laion1M_model_wo_ema.ckpt")
-    elif model_ckpt == "LAION-Glyph-10M":
-        model = load_model_ckpt(model, "model_wo_ema.ckpt")
+    elif model_ckpt == "LAION-Glyph-10M-Epoch-5":
+        model = load_model_ckpt(model, "laion10M_epoch_5_model_wo_ema.ckpt")
+    elif model_ckpt == "LAION-Glyph-10M-Epoch-6":
+        model = load_model_ckpt(model, "laion10M_epoch_6_model_wo_ema.ckpt")
+
     render_tool = Render_Text(model)
     output_str = f"already change the model checkpoint to {model_ckpt}"
     print(output_str)
@@ -96,7 +99,8 @@ def load_ckpt(model_ckpt = "LAION-Glyph-10M"):
         print("empty the cuda cache")
 
 cfg = OmegaConf.load("config.yaml")
-model = load_model_from_config(cfg, "model_wo_ema.ckpt", verbose=True)
+model = load_model_from_config(cfg, "laion10M_epoch_6_model_wo_ema.ckpt", verbose=True)
+# model = load_model_from_config(cfg, "model_wo_ema.ckpt", verbose=True)
 # model = load_model_from_config(cfg, "model_states.pt", verbose=True)
 # model = load_model_from_config(cfg, "model.ckpt", verbose=True)
 # ddim_sampler = DDIMSampler(model)
@@ -148,7 +152,7 @@ with block:
                 with gr.Accordion("Model Options", open=False):
                     with gr.Row():
                         # model_ckpt = gr.inputs.Dropdown(["LAION-Glyph-10M", "Textcaps5K-10"], label="Checkpoint", default = "LAION-Glyph-10M")
-                        model_ckpt = gr.inputs.Dropdown(["LAION-Glyph-10M", "LAION-Glyph-1M"], label="Checkpoint", default = "LAION-Glyph-10M")
+                        model_ckpt = gr.inputs.Dropdown(["LAION-Glyph-10M-Epoch-6", "LAION-Glyph-10M-Epoch-5", "LAION-Glyph-1M"], label="Checkpoint", default = "LAION-Glyph-10M-Epoch-6")
                         load_button = gr.Button(value = "Load Checkpoint")
             
             with gr.Accordion("Shared Advanced Options", open=False):  
