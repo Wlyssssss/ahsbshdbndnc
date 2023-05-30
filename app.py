@@ -97,6 +97,8 @@ def load_ckpt(model_ckpt = "LAION-Glyph-10M-Epoch-5"):
             torch.cuda.empty_cache()
         time.sleep(2)
         print("empty the cuda cache")
+    return output_str, None
+
 
 cfg = OmegaConf.load("config.yaml")
 model = load_model_from_config(cfg, "laion10M_epoch_6_model_wo_ema.ckpt", verbose=True)
@@ -147,13 +149,13 @@ with block:
             with gr.Column():
                 shared_prompt = gr.Textbox(label="Shared Prompt")
                 with gr.Row():
-                    show_render_button = gr.Button(value="Only Rendered")
-                    run_button = gr.Button(value="Run")     
+                    show_render_button = gr.Button(value="Render Glyph Image")
+                    run_button = gr.Button(value="Run Generation")     
                 with gr.Accordion("Model Options", open=False):
                     with gr.Row():
                         # model_ckpt = gr.inputs.Dropdown(["LAION-Glyph-10M", "Textcaps5K-10"], label="Checkpoint", default = "LAION-Glyph-10M")
                         model_ckpt = gr.inputs.Dropdown(["LAION-Glyph-10M-Epoch-6", "LAION-Glyph-10M-Epoch-5", "LAION-Glyph-1M"], label="Checkpoint", default = "LAION-Glyph-10M-Epoch-6")
-                        load_button = gr.Button(value = "Load Checkpoint")
+                        # load_button = gr.Button(value = "Load Checkpoint")
             
             with gr.Accordion("Shared Advanced Options", open=False):  
                 with gr.Row():
@@ -207,7 +209,7 @@ with block:
                         shared_eta, shared_a_prompt, shared_n_prompt],  
                 outputs=[message, result_gallery]) 
     
-    load_button.click(fn = load_ckpt,
+    model_ckpt.change(load_ckpt,                 
                 inputs = [model_ckpt],
                 outputs = [message, result_gallery]
     )
