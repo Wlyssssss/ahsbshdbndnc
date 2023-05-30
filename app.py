@@ -20,6 +20,7 @@ def process_multi_wrapper(rendered_txt_0, rendered_txt_1, rendered_txt_2, render
                             shared_ddim_steps, shared_guess_mode,  
                             shared_strength, shared_scale, shared_seed,  
                             shared_eta, shared_a_prompt, shared_n_prompt):  
+    global ALLOW_RUN_GENERATION
     if not ALLOW_RUN_GENERATION:
         return 
 
@@ -53,7 +54,7 @@ def process_multi_wrapper_only_show_rendered(rendered_txt_0, rendered_txt_1, ren
                             shared_ddim_steps, shared_guess_mode,  
                             shared_strength, shared_scale, shared_seed,  
                             shared_eta, shared_a_prompt, shared_n_prompt):  
-    
+    global ALLOW_RUN_GENERATION   
     rendered_txt_values = [rendered_txt_0, rendered_txt_1, rendered_txt_2, rendered_txt_3]  
     width_values = [width_0, width_1, width_2, width_3]  
     ratio_values = [ratio_0, ratio_1, ratio_2, ratio_3]  
@@ -167,6 +168,7 @@ with block:
                                             value='longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality') 
         
         with gr.Row(): 
+            message = gr.outputs.Textbox()
             result_gallery = gr.Gallery(label='Output', show_label=False, elem_id="gallery").style(grid=2, height='auto')  
     
     run_button.click(fn=process_multi_wrapper,  
