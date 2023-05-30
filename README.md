@@ -1,5 +1,5 @@
 ---
-title: Glyphcontrol Test
+title: GlyphControl
 emoji: 🏢
 colorFrom: pink
 colorTo: blue
