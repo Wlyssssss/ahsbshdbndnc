@@ -113,7 +113,9 @@ with block:
     with gr.Row():  
         gr.Markdown(description)  
         only_show_rendered_image = gr.Number(value=1, visible=False)
-        
+    default_width = [0.3, 0.3, 0.3, 0.3]
+    default_top_left_x = [0.35, 0.15, 0.15, 0.5]
+    default_top_left_y = [0.5, 0.25, 0.75, 0.75]
     with gr.Column():  
             
         with gr.Row(): 
@@ -122,11 +124,13 @@ with block:
                     exec(f"""rendered_txt_{i} = gr.Textbox(label=f"Render Text {i+1}")""")
                     
                     with gr.Accordion(f"Advanced options {i+1}", open=False):  
-                        exec(f"""width_{i} = gr.Slider(label="Bbox Width", minimum=0., maximum=1, value=0.3, step=0.01)  """)
+                        exec(f"""width_{i} = gr.Slider(label="Bbox Width", minimum=0., maximum=1, value={default_width[i]}, step=0.01)  """)
                         exec(f"""ratio_{i} = gr.Slider(label="Bbox_width_height_ratio", minimum=0., maximum=5, value=0., step=0.02, visible=False)  """)
-                        exec(f"""top_left_x_{i} = gr.Slider(label="Bbox Top Left x", minimum=0., maximum=1, value={0.35 - 0.25 * math.cos(math.pi * i)}, step=0.01)  """)
-                        exec(f"""top_left_y_{i} = gr.Slider(label="Bbox Top Left y", minimum=0., maximum=1, value={0.1 if i < 2 else 0.6}, step=0.01)  """)
-                        exec(f"""yaw_{i} = gr.Slider(label="Bbox Yaw", minimum=-180, maximum=180, value=0, step=5) """)
+                        # exec(f"""top_left_x_{i} = gr.Slider(label="Bbox Top Left x", minimum=0., maximum=1, value={0.35 - 0.25 * math.cos(math.pi * i)}, step=0.01)  """)
+                        # exec(f"""top_left_y_{i} = gr.Slider(label="Bbox Top Left y", minimum=0., maximum=1, value={0.1 if i < 2 else 0.6}, step=0.01)  """)
+                        exec(f"""top_left_x_{i} = gr.Slider(label="Bbox Top Left x", minimum=0., maximum=1, value={default_top_left_x[i]}, step=0.01)  """)
+                        exec(f"""top_left_y_{i} = gr.Slider(label="Bbox Top Left y", minimum=0., maximum=1, value={default_top_left_y[i]}, step=0.01)  """)
+                        exec(f"""yaw_{i} = gr.Slider(label="Bbox Yaw", minimum=-20, maximum=20, value=0, step=5) """)
                         # exec(f"""num_rows_{i} = gr.Slider(label="num_rows", minimum=1, maximum=4, value=1, step=1, visible=False)  """)
                         exec(f"""num_rows_{i} = gr.Slider(label="num_rows", minimum=1, maximum=4, value=1, step=1)  """)
         
@@ -134,8 +138,8 @@ with block:
             with gr.Column():
                 shared_prompt = gr.Textbox(label="Shared Prompt")
                 with gr.Row():
-                    run_button = gr.Button(value="Run")
                     show_render_button = gr.Button(value="Only Rendered")
+                    run_button = gr.Button(value="Run")     
                 with gr.Accordion("Model Options", open=False):
                     with gr.Row():
                         # model_ckpt = gr.inputs.Dropdown(["LAION-Glyph-10M", "Textcaps5K-10"], label="Checkpoint", default = "LAION-Glyph-10M")
