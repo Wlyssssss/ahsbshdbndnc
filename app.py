@@ -7,6 +7,7 @@ import os
 import torch
 import time
 
+ALLOW_RUN_GENERATION = False
 def process_multi_wrapper(rendered_txt_0, rendered_txt_1, rendered_txt_2, rendered_txt_3,
                             shared_prompt,  
                             width_0, width_1, width_2, width_3,  
@@ -18,8 +19,10 @@ def process_multi_wrapper(rendered_txt_0, rendered_txt_1, rendered_txt_2, render
                             shared_num_samples, shared_image_resolution,  
                             shared_ddim_steps, shared_guess_mode,  
                             shared_strength, shared_scale, shared_seed,  
-                            shared_eta, shared_a_prompt, shared_n_prompt, ):  
-    
+                            shared_eta, shared_a_prompt, shared_n_prompt):  
+    if not ALLOW_RUN_GENERATION:
+        return 
+
     rendered_txt_values = [rendered_txt_0, rendered_txt_1, rendered_txt_2, rendered_txt_3]  
     width_values = [width_0, width_1, width_2, width_3]  
     ratio_values = [ratio_0, ratio_1, ratio_2, ratio_3]  
@@ -27,7 +30,7 @@ def process_multi_wrapper(rendered_txt_0, rendered_txt_1, rendered_txt_2, render
     top_left_y_values = [top_left_y_0, top_left_y_1, top_left_y_2, top_left_y_3]  
     yaw_values = [yaw_0, yaw_1, yaw_2, yaw_3]  
     num_rows_values = [num_rows_0, num_rows_1, num_rows_2, num_rows_3]  
-  
+    ALLOW_RUN_GENERATION = False
     return render_tool.process_multi(rendered_txt_values, shared_prompt,  
                                      width_values, ratio_values,  
                                      top_left_x_values, top_left_y_values,  
@@ -58,6 +61,7 @@ def process_multi_wrapper_only_show_rendered(rendered_txt_0, rendered_txt_1, ren
     top_left_y_values = [top_left_y_0, top_left_y_1, top_left_y_2, top_left_y_3]  
     yaw_values = [yaw_0, yaw_1, yaw_2, yaw_3]  
     num_rows_values = [num_rows_0, num_rows_1, num_rows_2, num_rows_3]  
+    ALLOW_RUN_GENERATION = True
   
     return render_tool.process_multi(rendered_txt_values, shared_prompt,  
                                      width_values, ratio_values,  
