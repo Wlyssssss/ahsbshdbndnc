@@ -532,13 +532,6 @@ class ControlLDM(LatentDiffusion):
         self.freeze_glyph_image_encoder = model.freeze_image_encoder #image_encoder.freeze_model
         self.glyph_control_model = model
         self.glyph_image_encoder_type = model.image_encoder_type
-            # self.glyph_control_optim = torch.optim.AdamW([
-            #     {"params": gain_or_bias_params, "weight_decay": 0.}, # "lr": self.glycon_lr},
-            #     {"params": rest_params, "weight_decay": self.glycon_wd}  #, "lr": self.glycon_lr},
-            # ],
-            # lr = self.glycon_lr
-            # )
-            # params += list(model.image_encoder.parameters())
         
         
 
@@ -738,16 +731,6 @@ class ControlLDM(LatentDiffusion):
         if decoder_params is not None:
             params_wlr.append({"params": decoder_params, "lr": self.decoder_lr})
         
-        
-        # if not self.sep_lr:
-        #     opt = torch.optim.AdamW(params, lr=lr)
-        # else:
-        #     opt = torch.optim.AdamW(
-        #         [
-        #         {"params": params},
-        #         {"params": decoder_params, "lr": self.decoder_lr} 
-        #         ], lr=lr
-        #     )
         if not self.freeze_glyph_image_encoder:
             if self.glyph_image_encoder_type == "CLIP":
                 # assert self.sep_lr
@@ -866,20 +849,6 @@ class ControlLDM(LatentDiffusion):
                     if p.requires_grad and p.grad is not None:
                         grad_norm_v = p.grad.cpu().detach().norm().item()
                         gradnorm_list.append(grad_norm_v)
-            # for name, p in self.named_parameters():
-            #     if p.requires_grad and p.grad is not None:
-            #         grad_norm_v = p.grad.detach().norm().item()
-            #         gradnorm_list.append(grad_norm_v)
-            #         if "textemb_merge_model" in name:
-            #             self.log("all_gradients/{}_norm".format(name),
-            #             gradnorm_list[-1],
-            #             prog_bar=False, logger=True, on_step=True, on_epoch=False
-            #             )
-            #         # if grad_norm_v > 0.1:
-            #         #     print("the norm of gradient w.r.t {} > 0.1: {:.2f}".format
-            #         #           (
-            #         #         name, grad_norm_v
-            #         #           ))
             if len(gradnorm_list):
                 self.log("all_gradients/grad_norm_mean", 
                     np.mean(gradnorm_list), 
@@ -944,18 +913,3 @@ class ControlLDM(LatentDiffusion):
                     )
             del gradnorm_list
             del zeroconvs
-
-    # def freeze_unet(self):
-    #     # Have some bugs
-    #     self.model.eval()
-    #     # self.model.train = disabled_train
-    #     for param in self.model.parameters():
-    #         param.requires_grad = False
-
-    #     if not self.sd_locked:
-    #         self.model.diffusion_model.output_blocks.train()
-    #         self.model.diffusion_model.out.train()
-    #         for param in self.model.diffusion_model.out.parameters():
-    #             param.requires_grad = True
-    #         for param in self.model.diffusion_model.output_blocks.parameters():
-    #             param.requires_grad = True
