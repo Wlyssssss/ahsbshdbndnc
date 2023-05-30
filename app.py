@@ -32,7 +32,7 @@ def process_multi_wrapper(rendered_txt_0, rendered_txt_1, rendered_txt_2, render
     yaw_values = [yaw_0, yaw_1, yaw_2, yaw_3]  
     num_rows_values = [num_rows_0, num_rows_1, num_rows_2, num_rows_3]  
     ALLOW_RUN_GENERATION = False
-    return "Image generation processes finished!", render_tool.process_multi(rendered_txt_values, shared_prompt,  
+    return "The image generation process finished!", render_tool.process_multi(rendered_txt_values, shared_prompt,  
                                      width_values, ratio_values,  
                                      top_left_x_values, top_left_y_values,  
                                      yaw_values, num_rows_values,  
@@ -64,7 +64,7 @@ def process_multi_wrapper_only_show_rendered(rendered_txt_0, rendered_txt_1, ren
     num_rows_values = [num_rows_0, num_rows_1, num_rows_2, num_rows_3]  
     ALLOW_RUN_GENERATION = True
   
-    return "Glyph images are generated!", render_tool.process_multi(rendered_txt_values, shared_prompt,  
+    return "The glyph image is generated!", render_tool.process_multi(rendered_txt_values, shared_prompt,  
                                      width_values, ratio_values,  
                                      top_left_x_values, top_left_y_values,  
                                      yaw_values, num_rows_values,  
