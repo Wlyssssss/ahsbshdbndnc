@@ -6,7 +6,7 @@ import gradio as gr
 import os
 import torch
 import time
-
+from PIL import Image
 ALLOW_RUN_GENERATION = False
 def process_multi_wrapper(rendered_txt_0, rendered_txt_1, rendered_txt_2, rendered_txt_3,
                             shared_prompt,  
@@ -22,7 +22,7 @@ def process_multi_wrapper(rendered_txt_0, rendered_txt_1, rendered_txt_2, render
                             shared_eta, shared_a_prompt, shared_n_prompt):  
     global ALLOW_RUN_GENERATION
     if not ALLOW_RUN_GENERATION:
-        return ["please get the glyph image first by clicking the 'Only Rendered' button"]
+        return "Please get the glyph image first by clicking the 'Only Rendered' button", None
 
     rendered_txt_values = [rendered_txt_0, rendered_txt_1, rendered_txt_2, rendered_txt_3]  
     width_values = [width_0, width_1, width_2, width_3]  
@@ -32,7 +32,7 @@ def process_multi_wrapper(rendered_txt_0, rendered_txt_1, rendered_txt_2, render
     yaw_values = [yaw_0, yaw_1, yaw_2, yaw_3]  
     num_rows_values = [num_rows_0, num_rows_1, num_rows_2, num_rows_3]  
     ALLOW_RUN_GENERATION = False
-    return render_tool.process_multi(rendered_txt_values, shared_prompt,  
+    return "Image generation processes finished!", render_tool.process_multi(rendered_txt_values, shared_prompt,  
                                      width_values, ratio_values,  
                                      top_left_x_values, top_left_y_values,  
                                      yaw_values, num_rows_values,  
@@ -64,7 +64,7 @@ def process_multi_wrapper_only_show_rendered(rendered_txt_0, rendered_txt_1, ren
     num_rows_values = [num_rows_0, num_rows_1, num_rows_2, num_rows_3]  
     ALLOW_RUN_GENERATION = True
   
-    return render_tool.process_multi(rendered_txt_values, shared_prompt,  
+    return "Glyph images are generated!", render_tool.process_multi(rendered_txt_values, shared_prompt,  
                                      width_values, ratio_values,  
                                      top_left_x_values, top_left_y_values,  
                                      yaw_values, num_rows_values,  
@@ -167,9 +167,11 @@ with block:
                     shared_n_prompt = gr.Textbox(label="Negative Prompt",  
                                             value='longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality') 
         
-        with gr.Row(): 
-            # message = gr.outputs.Textbox()
-            result_gallery = gr.Gallery(label='Output', show_label=False, elem_id="gallery").style(grid=2, height='auto')  
+        with gr.Accordion("Output", open=True):
+            with gr.Row(): 
+                message = gr.Text(interactive=False, label = "Message")
+            with gr.Row():
+                result_gallery = gr.Gallery(label='Images', show_label=False, elem_id="gallery").style(grid=2, height='auto')  
     
     run_button.click(fn=process_multi_wrapper,  
                 inputs=[rendered_txt_0, rendered_txt_1, rendered_txt_2, rendered_txt_3,
@@ -184,7 +186,7 @@ with block:
                         shared_ddim_steps, shared_guess_mode,  
                         shared_strength, shared_scale, shared_seed,  
                         shared_eta, shared_a_prompt, shared_n_prompt],  
-                outputs=[result_gallery])  
+                outputs=[message, result_gallery])  
     
     show_render_button.click(fn=process_multi_wrapper_only_show_rendered,  
                 inputs=[rendered_txt_0, rendered_txt_1, rendered_txt_2, rendered_txt_3,
@@ -199,11 +201,11 @@ with block:
                         shared_ddim_steps, shared_guess_mode,  
                         shared_strength, shared_scale, shared_seed,  
                         shared_eta, shared_a_prompt, shared_n_prompt],  
-                outputs=[result_gallery]) 
+                outputs=[message, result_gallery]) 
     
     load_button.click(fn = load_ckpt,
                 inputs = [model_ckpt],
-                outputs = [result_gallery]
+                outputs = [message, result_gallery]
     )
 
     block.launch()
