@@ -8,7 +8,7 @@ import torch
 import time
 from PIL import Image
 from cldm.hack import disable_verbosity, enable_sliced_attention
-from pytorch_lightning import seed_everything
+# from pytorch_lightning import seed_everything
 
 def process_multi_wrapper(rendered_txt_0, rendered_txt_1, rendered_txt_2, rendered_txt_3,
                             shared_prompt,  
@@ -87,13 +87,13 @@ def load_ckpt(model_ckpt = "LAION-Glyph-10M-Epoch-5"):
     # if model_ckpt == "LAION-Glyph-10M-Epoch-5":
     #     model = load_model_ckpt(model, "laion10M_epoch_5_model_wo_ema.ckpt")
     if model_ckpt == "LAION-Glyph-10M-Epoch-6":
-        model = load_model_ckpt(model, "laion10M_epoch_6_model_wo_ema.ckpt")
+        model = load_model_ckpt(model, "checkpoints/laion10M_epoch_6_model_wo_ema.ckpt")
     elif model_ckpt == "TextCaps-5K-Epoch-10":
-        model = load_model_ckpt(model, "textcaps5K_epoch_10_model_wo_ema.ckpt")
+        model = load_model_ckpt(model, "checkpoints/textcaps5K_epoch_10_model_wo_ema.ckpt")
     elif model_ckpt == "TextCaps-5K-Epoch-20":
-        model = load_model_ckpt(model, "textcaps5K_epoch_20_model_wo_ema.ckpt")
+        model = load_model_ckpt(model, "checkpoints/textcaps5K_epoch_20_model_wo_ema.ckpt")
     elif model_ckpt == "TextCaps-5K-Epoch-40":
-        model = load_model_ckpt(model, "textcaps5K_epoch_40_model_wo_ema.ckpt")
+        model = load_model_ckpt(model, "checkpoints/textcaps5K_epoch_40_model_wo_ema.ckpt")
 
     render_tool = Render_Text(model, save_memory = SAVE_MEMORY)
     output_str = f"already change the model checkpoint to {model_ckpt}"
@@ -107,20 +107,11 @@ def load_ckpt(model_ckpt = "LAION-Glyph-10M-Epoch-5"):
     return output_str, None, allow_run_generation
 
 SAVE_MEMORY = False
-shared_seed = 0
-if shared_seed == -1:
-    shared_seed = random.randint(0, 65535)
-seed_everything(shared_seed)
-
 disable_verbosity()
 if SAVE_MEMORY:
     enable_sliced_attention()
 cfg = OmegaConf.load("config.yaml")
-model = load_model_from_config(cfg, "laion10M_epoch_6_model_wo_ema.ckpt", verbose=True)
-# model = load_model_from_config(cfg, "model_wo_ema.ckpt", verbose=True)
-# model = load_model_from_config(cfg, "model_states.pt", verbose=True)
-# model = load_model_from_config(cfg, "model.ckpt", verbose=True)
-# ddim_sampler = DDIMSampler(model)
+model = load_model_from_config(cfg, "checkpoints/laion10M_epoch_6_model_wo_ema.ckpt", verbose=True)
 render_tool = Render_Text(model, save_memory = SAVE_MEMORY)
 
 

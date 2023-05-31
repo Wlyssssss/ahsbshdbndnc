@@ -79,15 +79,7 @@ class DDIMSampler(object):
                ):
         if conditioning is not None:
             if isinstance(conditioning, dict):
-                # ctmp = conditioning[list(conditioning.keys())[0]]
-                # while isinstance(ctmp, list): ctmp = ctmp[0]
-                # cbs = ctmp.shape[0]
-                # if cbs != batch_size:
-                    # print(f"Warning: Got {ctmp.shape[0]} conditionings but batch-size is {batch_size}")
-                # for ctmp in conditioning.values():
                 for key, ctmp in conditioning.items():
-                    if key == "c_glyph":
-                        continue
                     if ctmp is None:
                         continue
                     else:
