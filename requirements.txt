@@ -8,4 +8,4 @@ pytorch-lightning==1.6.5
 transformers
 open_clip_torch
 ninja
--f git+https://github.com/facebookresearch/xformers.git@main#egg=xformers
+xformers==0.0.21.dev541+git.efcd789
