@@ -83,7 +83,8 @@ class Render_Text:
         self.transform = transform
         self.ddim_sampler = DDIMSampler(model)
         self.save_memory = save_memory
-    
+        
+    # process multiple groups of rendered text for building demo
     def process_multi(self, 
             rendered_txt_values, shared_prompt,  
             width_values, ratio_values,  
@@ -102,8 +103,12 @@ class Render_Text:
             self.precision_scope("cuda"), \
             self.model.ema_scope("Sampling on Benchmark Prompts"):
             print("rendered txt:", str(rendered_txt_values), "[t]")
-            if rendered_txt_values == "":
+            render_none = len([1 for rendered_txt in rendered_txt_values if rendered_txt != ""]) == 0
+            if render_none:
+            # if rendered_txt_values == "":
                 control = None
+                if only_show_rendered_image:
+                    return [None]
             else:
                 def format_bboxes(width_values, ratio_values, top_left_x_values, top_left_y_values, yaw_values):
                     bboxes = []
@@ -193,7 +198,8 @@ class Render_Text:
             x_samples = (einops.rearrange(x_samples, 'b c h w -> b h w c') * 127.5 + 127.5).cpu().numpy().clip(0, 255).astype(np.uint8)
 
             results = [x_samples[i] for i in range(shared_num_samples)]
-        if rendered_txt_values != "":
+        # if rendered_txt_values != "":
+        if not render_none:
             return [whiteboard_img] + results
         else:
             return results
