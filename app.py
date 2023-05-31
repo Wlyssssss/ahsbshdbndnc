@@ -93,7 +93,7 @@ def load_ckpt(model_ckpt = "LAION-Glyph-10M-Epoch-5"):
     elif model_ckpt == "TextCaps-5K-Epoch-40":
         model = load_model_ckpt(model, "textcaps5K_epoch_40_model_wo_ema.ckpt")
 
-    render_tool = Render_Text(model)
+    render_tool = Render_Text(model, save_memory = SAVE_MEMORY)
     output_str = f"already change the model checkpoint to {model_ckpt}"
     print(output_str)
     if torch.cuda.is_available():
@@ -104,14 +104,14 @@ def load_ckpt(model_ckpt = "LAION-Glyph-10M-Epoch-5"):
     allow_run_generation = False
     return output_str, None, allow_run_generation
 
-
+SAVE_MEMORY = True
 cfg = OmegaConf.load("config.yaml")
 model = load_model_from_config(cfg, "laion10M_epoch_6_model_wo_ema.ckpt", verbose=True)
 # model = load_model_from_config(cfg, "model_wo_ema.ckpt", verbose=True)
 # model = load_model_from_config(cfg, "model_states.pt", verbose=True)
 # model = load_model_from_config(cfg, "model.ckpt", verbose=True)
 # ddim_sampler = DDIMSampler(model)
-render_tool = Render_Text(model)
+render_tool = Render_Text(model, save_memory = SAVE_MEMORY)
 
 
 description = """

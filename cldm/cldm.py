@@ -28,7 +28,7 @@ def disabled_train(self, mode=True):
     return self
 
 class ControlledUnetModel(UNetModel):
-    def forward(self, x, timesteps=None, context=None, control=None, only_mid_control=False, context_glyph= None, **kwargs):
+    def forward(self, x, timesteps=None, context=None, control=None, only_mid_control=False,  **kwargs):
         hs = []
         with torch.no_grad():
             t_emb = timestep_embedding(timesteps, self.model_channels, repeat_only=False)
@@ -47,7 +47,7 @@ class ControlledUnetModel(UNetModel):
                 h = torch.cat([h, hs.pop()], dim=1)
             else:
                 h = torch.cat([h, hs.pop() + control.pop()], dim=1)
-            h = module(h, emb, context if context_glyph is None else context_glyph)
+            h = module(h, emb, context)
 
         h = h.type(x.dtype)
         return self.out(h)
@@ -317,16 +317,12 @@ class ControlLDM(LatentDiffusion):
 
     def __init__(self, 
                  control_stage_config, 
-                 control_key, only_mid_control, 
-                 sd_locked = True, concat_textemb = False, 
-                 trans_textemb=False, trans_textemb_config = None, 
+                 control_key, only_mid_control,   
                  learnable_conscale = False, guess_mode=False,
-                 sep_lr = False, decoder_lr = 1.0**-4, 
-                 add_glyph_control = False, glyph_control_config = None, glycon_wd = 0.2, glycon_lr = 1.0**-4, glycon_sched = "lambda", 
-                 glyph_control_key = "centered_hint", sep_cond_txt = False, exchange_cond_txt = False,
-                 max_step = None, multiple_optimizers = False, deepspeed = False, trans_glyph_lr = 1.0**-5,
+                 sd_locked = True, sep_lr = False, decoder_lr = 1.0**-4, 
+                 sep_cond_txt = True, exchange_cond_txt = False, concat_all_textemb = False,
                  *args, **kwargs
-                 ): #sep_cap_for_2b = False
+                 ): 
         use_ema = kwargs.pop("use_ema", False)
         ckpt_path = kwargs.pop("ckpt_path", None)
         reset_ema = kwargs.pop("reset_ema", False)
@@ -336,90 +332,53 @@ class ControlLDM(LatentDiffusion):
         ignore_keys = kwargs.pop("ignore_keys", [])
 
         super().__init__(*args, use_ema=False, **kwargs)
+
+        # Glyph ControlNet
         self.control_model = instantiate_from_config(control_stage_config)
         self.control_key = control_key
         self.only_mid_control = only_mid_control
+
         self.learnable_conscale = learnable_conscale
         conscale_init = [1.0] * 13 if not guess_mode else [(0.825 ** float(12 - i)) for i in range(13)]
         if learnable_conscale:
             # self.control_scales = nn.Parameter(torch.ones(13), requires_grad=True)
             self.control_scales = nn.Parameter(torch.Tensor(conscale_init), requires_grad=True)
-        else: # TODO: register the buffer
+        else: 
             self.control_scales = conscale_init #[1.0] * 13 
+        
+        self.optimizer = torch.optim.AdamW   
+        # whether to unlock (fine-tune) the decoder parts of SD U-Net  
         self.sd_locked = sd_locked
-        self.concat_textemb = concat_textemb
-        # update
-        self.trans_textemb = False
-        if trans_textemb and trans_textemb_config is not None:
-            self.trans_textemb = True
-            self.instantiate_trans_textemb_model(trans_textemb_config)
-        # self.sep_cap_for_2b = sep_cap_for_2b
-
         self.sep_lr = sep_lr
         self.decoder_lr = decoder_lr
-        self.sep_cond_txt = sep_cond_txt
-        self.exchange_cond_txt = exchange_cond_txt
-        # update (4.18)
-        self.multiple_optimizers = multiple_optimizers
-        self.add_glyph_control = False
-        self.glyph_control_key = glyph_control_key
-        self.freeze_glyph_image_encoder = True
-        self.glyph_image_encoder_type = "CLIP"
-        self.max_step = max_step
-        self.trans_glyph_embed = False
-        self.trans_glyph_lr = trans_glyph_lr
-        if deepspeed:
-            try: 
-                from deepspeed.ops.adam import FusedAdam, DeepSpeedCPUAdam
-                self.optimizer = DeepSpeedCPUAdam #FusedAdam
-            except:
-                print("could not import FuseAdam from deepspeed")
-                self.optimizer = torch.optim.AdamW
-        else:
-            self.optimizer = torch.optim.AdamW
         
-        if add_glyph_control and glyph_control_config is not None:
-            self.add_glyph_control = True
-            self.glycon_wd = glycon_wd
-            self.glycon_lr = glycon_lr
-            self.glycon_sched = glycon_sched
-            self.instantiate_glyph_control_model(glyph_control_config)
-            if self.glyph_control_model.trans_glyph_emb_model is not None:
-                self.trans_glyph_embed = True       
-    
+        # specify the input text embedding of two branches (SD branch and Glyph ControlNet branch)
+        self.sep_cond_txt = sep_cond_txt
+        self.concat_all_textemb = concat_all_textemb
+        self.exchange_cond_txt = exchange_cond_txt
+        
+        # ema 
         self.use_ema = use_ema
-        if self.use_ema: #TODO: trainable glyph Image encoder
-            # assert self.sd_locked == True
+        if self.use_ema: 
             self.model_ema = LitEma(self.control_model, init_num_updates= 0)
             print(f"Keeping EMAs of {len(list(self.model_ema.buffers()))}.")
-            if not self.sd_locked: # Update
+            if not self.sd_locked: 
                 self.model_diffoutblock_ema = LitEma(self.model.diffusion_model.output_blocks, init_num_updates= 0)
                 print(f"Keeping diffoutblock EMAs of {len(list(self.model_diffoutblock_ema.buffers()))}.")
                 self.model_diffout_ema = LitEma(self.model.diffusion_model.out, init_num_updates= 0)
                 print(f"Keeping diffout EMAs of {len(list(self.model_diffout_ema.buffers()))}.")
-            if not self.freeze_glyph_image_encoder:
-                self.model_glyphcon_ema = LitEma(self.glyph_control_model.image_encoder, init_num_updates=0)
-                print(f"Keeping glyphcon EMAs of {len(list(self.model_glyphcon_ema.buffers()))}.")
-            if self.trans_glyph_embed:
-                self.model_transglyph_ema = LitEma(self.glyph_control_model.trans_glyph_emb_model, init_num_updates=0)
-                print(f"Keeping glyphcon EMAs of {len(list(self.model_transglyph_ema.buffers()))}.")
         
+        # initialize the model from the checkpoint
         if ckpt_path is not None:
             ema_num_updates = self.init_from_ckpt(ckpt_path, ignore_keys, only_model=only_model)
             self.restarted_from_ckpt = True
-            # if reset_ema:
-            #     assert self.use_ema
             if self.use_ema and reset_ema:
                 print(
                     f"Resetting ema to pure model weights. This is useful when restoring from an ema-only checkpoint.")
                 self.model_ema = LitEma(self.control_model, init_num_updates= ema_num_updates if keep_num_ema_updates else 0)
-                if not self.sd_locked: # Update
+                if not self.sd_locked: 
                     self.model_diffoutblock_ema = LitEma(self.model.diffusion_model.output_blocks, init_num_updates= ema_num_updates if keep_num_ema_updates else 0)
                     self.model_diffout_ema = LitEma(self.model.diffusion_model.out, init_num_updates= ema_num_updates if keep_num_ema_updates else 0)
-                if not self.freeze_glyph_image_encoder:
-                    self.model_glyphcon_ema = LitEma(self.glyph_control_model.image_encoder, init_num_updates= ema_num_updates if keep_num_ema_updates else 0)
-                if self.trans_glyph_embed:
-                    self.model_transglyph_ema = LitEma(self.glyph_control_model.trans_glyph_emb_model, init_num_updates= ema_num_updates if keep_num_ema_updates else 0)
 
         if reset_num_ema_updates:
             print(" +++++++++++ WARNING: RESETTING NUM_EMA UPDATES TO ZERO +++++++++++ ")
@@ -428,13 +387,6 @@ class ControlLDM(LatentDiffusion):
             if not self.sd_locked: # Update
                 self.model_diffoutblock_ema.reset_num_updates()
                 self.model_diffout_ema.reset_num_updates()
-            if not self.freeze_glyph_image_encoder:
-                self.model_glyphcon_ema.reset_num_updates()
-            if self.trans_glyph_embed:
-                self.model_transglyph_ema.reset_num_updates()
-        
-
-        # self.freeze_unet()
 
     @contextmanager
     def ema_scope(self, context=None):
@@ -446,12 +398,6 @@ class ControlLDM(LatentDiffusion):
                 self.model_diffoutblock_ema.copy_to(self.model.diffusion_model.output_blocks)
                 self.model_diffout_ema.store(self.model.diffusion_model.out.parameters())
                 self.model_diffout_ema.copy_to(self.model.diffusion_model.out)
-            if not self.freeze_glyph_image_encoder:
-                self.model_glyphcon_ema.store(self.glyph_control_model.image_encoder.parameters())
-                self.model_glyphcon_ema.copy_to(self.glyph_control_model.image_encoder)
-            if self.trans_glyph_embed:
-                self.model_transglyph_ema.store(self.glyph_control_model.trans_glyph_emb_model.parameters())
-                self.model_transglyph_ema.copy_to(self.glyph_control_model.trans_glyph_emb_model)
 
             if context is not None:
                 print(f"{context}: Switched ControlNet to EMA weights")
@@ -463,10 +409,6 @@ class ControlLDM(LatentDiffusion):
                 if not self.sd_locked: # Update
                     self.model_diffoutblock_ema.restore(self.model.diffusion_model.output_blocks.parameters())
                     self.model_diffout_ema.restore(self.model.diffusion_model.out.parameters())
-                if not self.freeze_glyph_image_encoder:
-                    self.model_glyphcon_ema.restore(self.glyph_control_model.image_encoder.parameters())
-                if self.trans_glyph_embed:
-                    self.model_transglyph_ema.restore(self.glyph_control_model.trans_glyph_emb_model.parameters())
                 if context is not None:
                     print(f"{context}: Restored training weights of ControlNet")
 
@@ -493,14 +435,8 @@ class ControlLDM(LatentDiffusion):
                 if k.startswith(ik):
                     print("Deleting key {} from state_dict.".format(k))
                     del sd[k]
-        # missing, unexpected = self.load_state_dict(sd, strict=False) if not only_model else self.model.load_state_dict(
-        #     sd, strict=False)
-        if not only_model:
-            missing, unexpected = self.load_state_dict(sd, strict=False)  
-        elif path.endswith(".bin"):
-            missing, unexpected = self.model.diffusion_model.load_state_dict(sd, strict=False)
-        elif path.endswith(".ckpt"):
-            missing, unexpected = self.model.load_state_dict(sd, strict=False)
+        missing, unexpected = self.load_state_dict(sd, strict=False) if not only_model else self.model.load_state_dict(
+            sd, strict=False)
 
         print(f"Restored from {path} with {len(missing)} missing and {len(unexpected)} unexpected keys")
         if len(missing) > 0:
@@ -513,28 +449,6 @@ class ControlLDM(LatentDiffusion):
         else: 
             return 0
 
-    def instantiate_trans_textemb_model(self, config):
-        model = instantiate_from_config(config) 
-        params = []
-        for i in range(model.emb_num):
-            if model.trans_trainable[i]:
-                params += list(model.trans_list[i].parameters())
-            else:
-                for param in model.trans_list[i].parameters():
-                    param.requires_grad = False 
-        self.trans_textemb_model = model
-        self.trans_textemb_params = params
-    
-    # add
-    def instantiate_glyph_control_model(self, config):
-        model = instantiate_from_config(config) 
-        # params = []
-        self.freeze_glyph_image_encoder = model.freeze_image_encoder #image_encoder.freeze_model
-        self.glyph_control_model = model
-        self.glyph_image_encoder_type = model.image_encoder_type
-        
-        
-
     @torch.no_grad()
     def get_input(self, batch, k, bs=None, *args, **kwargs):
         x, c = super().get_input(batch, self.first_stage_key, *args, **kwargs)
@@ -544,80 +458,42 @@ class ControlLDM(LatentDiffusion):
         control = control.to(self.device)
         control = einops.rearrange(control, 'b h w c -> b c h w')
         control = control.to(memory_format=torch.contiguous_format).float()
-        
-        if self.add_glyph_control: 
-            assert self.glyph_control_key in batch.keys()
-            glyph_control = batch[self.glyph_control_key]
-            if bs is not None:
-                glyph_control = glyph_control[:bs]
-            glycon_samples = []
-            for glycon_sample in glyph_control:
-                glycon_sample = glycon_sample.to(self.device)
-                glycon_sample = einops.rearrange(glycon_sample, 'b h w c -> b c h w')
-                glycon_sample = glycon_sample.to(memory_format=torch.contiguous_format).float()
-                glycon_samples.append(glycon_sample)
-            # return x, dict(c_crossattn=[c], c_concat=[control])
-            return x, dict(c_crossattn=[c] if not isinstance(c, list) else c, c_concat=[control], c_glyph=glycon_samples)
         return x, dict(c_crossattn=[c] if not isinstance(c, list) else c, c_concat=[control])
 
     def apply_model(self, x_noisy, t, cond, *args, **kwargs):
         assert isinstance(cond, dict)
         diffusion_model = self.model.diffusion_model
-        
-        #update
-        embdim_list = []
-        for c in cond["c_crossattn"]:
-            embdim_list.append(c.shape[-1])
-        embdim_list = np.array(embdim_list)
-        if np.sum(embdim_list != diffusion_model.context_dim):
-            assert self.trans_textemb 
-            
-        if self.trans_textemb:
-            assert self.trans_textemb_model
-            cond_txt_list = self.trans_textemb_model(cond["c_crossattn"])
-            # if len(cond_txt_list) == 2:
-            #     print("cond_txt_2 max: {}".format(torch.max(torch.abs(cond_txt_list[1]))))
-        else:
-            cond_txt_list = cond["c_crossattn"]
-        
+        cond_txt_list = cond["c_crossattn"]
 
         assert len(cond_txt_list) > 0
-        if self.sep_cond_txt:
-            cond_txt = cond_txt_list[0]
-            cond_txt_2 = None if len(cond_txt_list) == 1 else cond_txt_list[1]
+        # cond_txt: input text embedding of the pretrained SD branch
+        # cond_txt_2: input text embedding of the Glyph ControlNet branch
+        cond_txt = cond_txt_list[0]
+        if len(cond_txt_list) == 1:
+            cond_txt_2 = None
         else:
-            if len(cond_txt_list) > 1:
-                cond_txt = cond_txt_list[0] # input text embedding of the pretrained SD 
-                if not self.concat_textemb:
-                    # currently len(cond_txt_list) <= 2 
-                    cond_txt_2 = torch.cat(cond_txt_list[1:], 1) # input text embedding of the ControlNet branch
+            if self.sep_cond_txt:
+                # use each embedding for each branch separately
+                cond_txt_2 = cond_txt_list[1]
+            else:
+                # concat the embedding for Glyph ControlNet branch
+                if not self.concat_all_textemb:
+                    cond_txt_2 = torch.cat(cond_txt_list[1:], 1) 
                 else:
                     cond_txt_2 = torch.cat(cond_txt_list, 1)
-                if self.exchange_cond_txt:
-                    txt_buffer = cond_txt
-                    cond_txt = cond_txt_2
-                    cond_txt_2 = txt_buffer                   
-                print("len cond_txt_list: {} | cond_txt_1 shape: {} | cond_txt_2 shape: {}".format(len(cond_txt_list), cond_txt.shape, cond_txt_2.shape))
-            else:
-                cond_txt = torch.cat(cond_txt_list, 1)
-                cond_txt_2 = None
 
-        context_glyph = None
-        if self.add_glyph_control:
-            assert "c_glyph" in cond.keys()
-            if cond["c_glyph"] is not None:
-                context_glyph = self.glyph_control_model(cond["c_glyph"], text_embed = cond_txt_list[-1] if len(cond_txt_list) == 3 else cond_txt)
-            else:
-                context_glyph = cond_txt_list[-1] if len(cond_txt_list) == 3 else cond_txt
-        # if cond_txt_2 is None:
-        #     print("cond_txt_2 is None")
+        if self.exchange_cond_txt:
+            # exchange the input text embedding of two branches
+            txt_buffer = cond_txt
+            cond_txt = cond_txt_2
+            cond_txt_2 = txt_buffer                   
 
         if cond['c_concat'] is None:
-            eps = diffusion_model(x=x_noisy, timesteps=t, context=cond_txt, control=None, only_mid_control=self.only_mid_control, context_glyph = context_glyph)
+            eps = diffusion_model(x=x_noisy, timesteps=t, context=cond_txt, control=None, only_mid_control=self.only_mid_control)
         else:
             control = self.control_model(x=x_noisy, hint=torch.cat(cond['c_concat'], 1), timesteps=t, context=cond_txt if cond_txt_2 is None else cond_txt_2)
             control = [c * scale for c, scale in zip(control, self.control_scales)]
-            eps = diffusion_model(x=x_noisy, timesteps=t, context=cond_txt, control=control, only_mid_control=self.only_mid_control, context_glyph=context_glyph)
+            eps = diffusion_model(x=x_noisy, timesteps=t, context=cond_txt, control=control, only_mid_control=self.only_mid_control)
 
         return eps
     
@@ -625,96 +501,16 @@ class ControlLDM(LatentDiffusion):
     def get_unconditional_conditioning(self, N):
         return self.get_learned_conditioning([""] * N)
 
-    # Maybe not useful: modify the codes to fit the separate input captions
-    # @torch.no_grad()
-    # def get_unconditional_conditioning(self, N):
-    #     return self.get_learned_conditioning([""] * N) if not self.sep_cap_for_2b else self.get_learned_conditioning([[""] * N, [""] * N])
-    # TODO: adapt to new model
-    @torch.no_grad()
-    def log_images(self, batch, N=4, n_row=2, sample=False, ddim_steps=50, ddim_eta=0.0, return_keys=None,
-                   quantize_denoised=True, inpaint=True, plot_denoise_rows=False, plot_progressive_rows=True,
-                   plot_diffusion_rows=False, unconditional_guidance_scale=9.0, unconditional_guidance_label=None,
-                   use_ema_scope=True,
-                   **kwargs):
-        use_ddim = ddim_steps is not None
-
-        log = dict()
-        z, c = self.get_input(batch, self.first_stage_key, bs=N)
-        c_cat, c = c["c_concat"][0][:N], c["c_crossattn"][0][:N]
-        N = min(z.shape[0], N)
-        n_row = min(z.shape[0], n_row)
-        log["reconstruction"] = self.decode_first_stage(z)
-        log["control"] = c_cat * 2.0 - 1.0
-        log["conditioning"] = log_txt_as_img((512, 512), batch[self.cond_stage_key], size=16)
-
-        if plot_diffusion_rows:
-            # get diffusion row
-            diffusion_row = list()
-            z_start = z[:n_row]
-            for t in range(self.num_timesteps):
-                if t % self.log_every_t == 0 or t == self.num_timesteps - 1:
-                    t = repeat(torch.tensor([t]), '1 -> b', b=n_row)
-                    t = t.to(self.device).long()
-                    noise = torch.randn_like(z_start)
-                    z_noisy = self.q_sample(x_start=z_start, t=t, noise=noise)
-                    diffusion_row.append(self.decode_first_stage(z_noisy))
-
-            diffusion_row = torch.stack(diffusion_row)  # n_log_step, n_row, C, H, W
-            diffusion_grid = rearrange(diffusion_row, 'n b c h w -> b n c h w')
-            diffusion_grid = rearrange(diffusion_grid, 'b n c h w -> (b n) c h w')
-            diffusion_grid = make_grid(diffusion_grid, nrow=diffusion_row.shape[0])
-            log["diffusion_row"] = diffusion_grid
-
-        if sample:
-            # get denoise row
-            samples, z_denoise_row = self.sample_log(cond={"c_concat": [c_cat], "c_crossattn": [c]},
-                                                     batch_size=N, ddim=use_ddim,
-                                                     ddim_steps=ddim_steps, eta=ddim_eta)
-            x_samples = self.decode_first_stage(samples)
-            log["samples"] = x_samples
-            if plot_denoise_rows:
-                denoise_grid = self._get_denoise_row_from_list(z_denoise_row)
-                log["denoise_row"] = denoise_grid
-
-        if unconditional_guidance_scale > 1.0:
-            uc_cross = self.get_unconditional_conditioning(N)
-            uc_cat = c_cat  # torch.zeros_like(c_cat)
-            uc_full = {"c_concat": [uc_cat], "c_crossattn": [uc_cross]}
-            samples_cfg, _ = self.sample_log(cond={"c_concat": [c_cat], "c_crossattn": [c]},
-                                             batch_size=N, ddim=use_ddim,
-                                             ddim_steps=ddim_steps, eta=ddim_eta,
-                                             unconditional_guidance_scale=unconditional_guidance_scale,
-                                             unconditional_conditioning=uc_full,
-                                             )
-            x_samples_cfg = self.decode_first_stage(samples_cfg)
-            log[f"samples_cfg_scale_{unconditional_guidance_scale:.2f}"] = x_samples_cfg
-
-        return log
-    # TODO: adapt to new model
-    @torch.no_grad()
-    def sample_log(self, cond, batch_size, ddim, ddim_steps, **kwargs):
-        ddim_sampler = DDIMSampler(self)
-        b, c, h, w = cond["c_concat"][0].shape
-        shape = (self.channels, h // 8, w // 8)
-        samples, intermediates = ddim_sampler.sample(ddim_steps, batch_size, shape, cond, verbose=False, **kwargs)
-        return samples, intermediates
-    # add 
     def training_step(self, batch, batch_idx, optimizer_idx=0):
         loss = super().training_step(batch, batch_idx, optimizer_idx)
         if self.use_scheduler and not self.sd_locked and self.sep_lr:
             decoder_lr = self.optimizers().param_groups[1]["lr"]
             self.log('decoder_lr_abs', decoder_lr, prog_bar=True, logger=True, on_step=True, on_epoch=False)
-            if self.trans_glyph_embed and self.freeze_glyph_image_encoder:
-                trans_glyph_embed_lr = self.optimizers().param_groups[2]["lr"]
-                self.log('trans_glyph_embed_lr_abs', trans_glyph_embed_lr, prog_bar=True, logger=True, on_step=True, on_epoch=False)
         return loss
     
     def configure_optimizers(self):
         lr = self.learning_rate
-        params = list(self.control_model.parameters())
-        if self.trans_textemb:
-            params += self.trans_textemb_params #list(self.trans_textemb_model.parameters())
-        
+        params = list(self.control_model.parameters())        
         if self.learnable_conscale:
             params += [self.control_scales]
         
@@ -731,34 +527,9 @@ class ControlLDM(LatentDiffusion):
         if decoder_params is not None:
             params_wlr.append({"params": decoder_params, "lr": self.decoder_lr})
         
-        if not self.freeze_glyph_image_encoder:
-            if self.glyph_image_encoder_type == "CLIP":
-                # assert self.sep_lr
-                # follow the training codes in the OpenClip repo
-                # https://github.com/mlfoundations/open_clip/blob/main/src/training/main.py#L303
-                exclude = lambda n, p: p.ndim < 2 or "bn" in n or "ln" in n or "bias" in n or 'logit_scale' in n
-                include = lambda n, p: not exclude(n, p)
-                
-                # named_parameters = list(model.image_encoder.named_parameters())
-                named_parameters = list(self.glyph_control_model.image_encoder.named_parameters())
-                gain_or_bias_params = [p for n, p in named_parameters if exclude(n, p) and p.requires_grad]
-                rest_params = [p for n, p in named_parameters if include(n, p) and p.requires_grad]
-                self.glyph_control_params_wlr = [
-                    {"params": gain_or_bias_params, "weight_decay": 0., "lr": self.glycon_lr},
-                    {"params": rest_params, "weight_decay": self.glycon_wd, "lr": self.glycon_lr},
-                ]
-        if not self.freeze_glyph_image_encoder and not self.multiple_optimizers:
-            params_wlr.extend(self.glyph_control_params_wlr)
-        
-        if self.trans_glyph_embed:
-            trans_glyph_params = list(self.glyph_control_model.trans_glyph_emb_model.parameters())
-            params_wlr.append({"params": trans_glyph_params, "lr": self.trans_glyph_lr})
         # opt = torch.optim.AdamW(params_wlr) 
         opt = self.optimizer(params_wlr)
         opts = [opt]
-        if not self.freeze_glyph_image_encoder and self.multiple_optimizers:
-            glyph_control_opt = self.optimizer(self.glyph_control_params_wlr) #torch.optim.AdamW(self.glyph_control_params_wlr) 
-            opts.append(glyph_control_opt)
 
         # updated
         schedulers = []
@@ -776,33 +547,8 @@ class ControlLDM(LatentDiffusion):
                     'frequency': 1
                 }]
             
-            if not self.freeze_glyph_image_encoder and self.multiple_optimizers:
-                if self.glycon_sched == "cosine" and self.max_step is not None:
-                    glyph_scheduler = CosineAnnealingLR(glyph_control_opt, T_max=self.max_step) #: max_step
-                elif self.glycon_sched == "onecycle" and self.max_step is not None:
-                    glyph_scheduler = OneCycleLR(
-                        glyph_control_opt,
-                        max_lr=self.glycon_lr,
-                        total_steps=self.max_step, #: max_step
-                        pct_start=0.0001,
-                        anneal_strategy="cos" #'linear'
-                    )
-                # elif self.glycon_sched == "lambda":
-                else:
-                    glyph_scheduler = LambdaLR(
-                        glyph_control_opt, 
-                        lr_lambda = [scheduler_func.schedule] * len(self.glyph_control_params_wlr)
-                    )
-                schedulers.append(
-                    {
-                        "scheduler": glyph_scheduler,
-                        "interval": 'step',
-                        'frequency': 1
-                    }
-                )
         return opts, schedulers
-        
-    # TODO: adapt to new model
+
     def low_vram_shift(self, is_diffusing):
         if is_diffusing:
             self.model = self.model.cuda()
@@ -822,10 +568,6 @@ class ControlLDM(LatentDiffusion):
             if not self.sd_locked: # Update
                 self.model_diffoutblock_ema(self.model.diffusion_model.output_blocks)
                 self.model_diffout_ema(self.model.diffusion_model.out)
-            if not self.freeze_glyph_image_encoder:
-                self.model_glyphcon_ema(self.glyph_control_model.image_encoder)
-            if self.trans_glyph_embed:
-                self.model_transglyph_ema(self.glyph_control_model.trans_glyph_emb_model)
         if self.log_all_grad_norm:
             zeroconvs = list(self.control_model.input_hint_block.named_parameters())[-2:]
             zeroconvs.extend(
@@ -866,43 +608,6 @@ class ControlLDM(LatentDiffusion):
                     len(gradnorm_list), 
                     prog_bar=False, logger=True, on_step=True, on_epoch=False
                 )
-
-            if self.trans_textemb:
-                for name, p in self.trans_textemb_model.named_parameters():
-                    if p.requires_grad and p.grad is not None:
-                        self.log(
-                            "trans_textemb_gradient_norm/{}".format(name), 
-                            p.grad.cpu().detach().norm().item(), 
-                            prog_bar=False, logger=True, on_step=True, on_epoch=False
-                        )
-                    self.log(
-                        "trans_textemb_params/{}_norm".format(name), 
-                        p.cpu().detach().norm().item(), 
-                        prog_bar=False, logger=True, on_step=True, on_epoch=False
-                    )
-                    self.log(
-                        "trans_textemb_params/{}_abs_max".format(name),
-                        torch.max(torch.abs(p.cpu().detach())).item(),
-                        prog_bar=False, logger=True, on_step=True, on_epoch=False
-                    )
-            if self.trans_glyph_embed:
-                for name, p in self.glyph_control_model.trans_glyph_emb_model.named_parameters():
-                    if p.requires_grad and p.grad is not None:
-                        self.log(
-                            "trans_glyph_embed_gradient_norm/{}".format(name), 
-                            p.grad.cpu().detach().norm().item(), 
-                            prog_bar=False, logger=True, on_step=True, on_epoch=False
-                        )
-                    self.log(
-                        "trans_glyph_embed_params/{}_norm".format(name), 
-                        p.cpu().detach().norm().item(), 
-                        prog_bar=False, logger=True, on_step=True, on_epoch=False
-                    )
-                    self.log(
-                        "trans_glyph_embed_params/{}_abs_max".format(name),
-                        torch.max(torch.abs(p.cpu().detach())).item(),
-                        prog_bar=False, logger=True, on_step=True, on_epoch=False
-                    )
 
             if self.learnable_conscale:
                 for i in range(len(self.control_scales)):

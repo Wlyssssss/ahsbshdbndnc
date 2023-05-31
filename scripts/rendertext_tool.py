@@ -75,12 +75,14 @@ class Render_Text:
     def __init__(self, 
         model,
         precision_scope=nullcontext,
-        transform=ToTensor()
+        transform=ToTensor(),
+        save_memory = False,
         ):
         self.model = model
         self.precision_scope = precision_scope
         self.transform = transform
         self.ddim_sampler = DDIMSampler(model)
+        self.save_memory = save_memory
     
     def process_multi(self, 
             rendered_txt_values, shared_prompt,  
@@ -138,11 +140,36 @@ class Render_Text:
                 shared_seed = random.randint(0, 65535)
             seed_everything(shared_seed)
 
+            if torch.cuda.is_available() and self.save_memory:
+                print("low_vram_shift: is_diffusing", False)
+                self.model.low_vram_shift(is_diffusing=False)
+
             print("control is None: {}".format(control is None))
-            print("prompt for the SD branch:", str(shared_prompt), "[t]")
-            cond_c_cross = self.model.get_learned_conditioning([shared_prompt + ', ' + shared_a_prompt] * shared_num_samples)
+            if shared_prompt.endswith("."):
+                if shared_a_prompt == "":
+                    c_prompt = shared_prompt
+                else:
+                    c_prompt = shared_prompt + " " + shared_a_prompt
+            elif shared_prompt.endswith(","):
+                if shared_a_prompt == "":
+                    c_prompt = shared_prompt[:-1] + "."
+                else:
+                    c_prompt = shared_prompt + " " + shared_a_prompt
+            else:
+                if shared_a_prompt == "":
+                    c_prompt = shared_prompt + "."
+                else:
+                    c_prompt = shared_prompt + ", " + shared_a_prompt
+
+            # cond_c_cross = self.model.get_learned_conditioning([shared_prompt + ', ' + shared_a_prompt] * shared_num_samples)
+            cond_c_cross = self.model.get_learned_conditioning([c_prompt] * shared_num_samples)
+            print("prompt:", c_prompt)
             un_cond_cross = self.model.get_learned_conditioning([shared_n_prompt] * shared_num_samples)
             
+            if torch.cuda.is_available() and self.save_memory:
+                print("low_vram_shift: is_diffusing", True)
+                self.model.low_vram_shift(is_diffusing=True)
+
             cond = {"c_concat": control, "c_crossattn": [cond_c_cross] if not isinstance(cond_c_cross, list) else cond_c_cross}
             un_cond = {"c_concat": None if shared_guess_mode else control, "c_crossattn": [un_cond_cross] if not isinstance(un_cond_cross, list) else un_cond_cross}
             shape = (4, H // 8, W // 8)
@@ -155,6 +182,9 @@ class Render_Text:
                                                         shape, cond, verbose=False, eta=shared_eta,
                                                         unconditional_guidance_scale=shared_scale,
                                                         unconditional_conditioning=un_cond)
+            if torch.cuda.is_available() and self.save_memory:
+                print("low_vram_shift: is_diffusing", False)
+                self.model.low_vram_shift(is_diffusing=False)
 
             x_samples = self.model.decode_first_stage(samples)
             x_samples = (einops.rearrange(x_samples, 'b c h w -> b h w c') * 127.5 + 127.5).cpu().numpy().clip(0, 255).astype(np.uint8)
