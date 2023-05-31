@@ -74,7 +74,7 @@ def process_multi_wrapper_only_show_rendered(rendered_txt_0, rendered_txt_1, ren
                                      only_show_rendered_image=True)
 
     if glyph_image[0] is None:
-        return "Warning: no glyph image would be rendered because the glyph insructions are not provided!", glyph_image, allow_run_generation
+        return "Warning: no glyph image would be rendered because the glyph insructions are not provided!", None, allow_run_generation
     else:
         return "The glyph image is successfully rendered!", glyph_image, allow_run_generation  
 
