@@ -12,7 +12,8 @@ try:
     import xformers
     import xformers.ops
     XFORMERS_IS_AVAILBLE = True
-except:
+except Exception as e:
+    print("xformer", e)
     XFORMERS_IS_AVAILBLE = False
     print("No module 'xformers'. Proceeding without it.")
 # XFORMERS_IS_AVAILBLE = False
