@@ -7,6 +7,8 @@ import os
 import torch
 import time
 from PIL import Image
+from cldm.hack import disable_verbosity, enable_sliced_attention
+from pytorch_lightning import seed_everything
 
 def process_multi_wrapper(rendered_txt_0, rendered_txt_1, rendered_txt_2, rendered_txt_3,
                             shared_prompt,  
@@ -104,7 +106,15 @@ def load_ckpt(model_ckpt = "LAION-Glyph-10M-Epoch-5"):
     allow_run_generation = False
     return output_str, None, allow_run_generation
 
-SAVE_MEMORY = True
+SAVE_MEMORY = False
+shared_seed = 0
+if shared_seed == -1:
+    shared_seed = random.randint(0, 65535)
+seed_everything(shared_seed)
+
+disable_verbosity()
+if SAVE_MEMORY:
+    enable_sliced_attention()
 cfg = OmegaConf.load("config.yaml")
 model = load_model_from_config(cfg, "laion10M_epoch_6_model_wo_ema.ckpt", verbose=True)
 # model = load_model_from_config(cfg, "model_wo_ema.ckpt", verbose=True)

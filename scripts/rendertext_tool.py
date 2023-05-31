@@ -2,9 +2,9 @@ from cldm.ddim_hacked import DDIMSampler
 import torch
 from annotator.render_images import render_text_image_custom
 from pytorch_lightning import seed_everything
-save_memory = False
-from cldm.hack import disable_verbosity
-disable_verbosity()
+# save_memory = False
+# from cldm.hack import disable_verbosity
+# disable_verbosity()
 import random
 import einops
 import numpy as np
@@ -95,6 +95,9 @@ class Render_Text:
             shared_eta, shared_a_prompt, shared_n_prompt,
             only_show_rendered_image=False
             ):
+        if shared_seed == -1:
+            shared_seed = random.randint(0, 65535)
+        seed_everything(shared_seed)
         with torch.no_grad(), \
             self.precision_scope("cuda"), \
             self.model.ema_scope("Sampling on Benchmark Prompts"):
@@ -136,9 +139,9 @@ class Render_Text:
                 
             H, W = shared_image_resolution, shared_image_resolution
 
-            if shared_seed == -1:
-                shared_seed = random.randint(0, 65535)
-            seed_everything(shared_seed)
+            # if shared_seed == -1:
+            #     shared_seed = random.randint(0, 65535)
+            # seed_everything(shared_seed)
 
             if torch.cuda.is_available() and self.save_memory:
                 print("low_vram_shift: is_diffusing", False)
