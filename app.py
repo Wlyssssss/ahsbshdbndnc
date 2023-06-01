@@ -110,7 +110,7 @@ def load_ckpt(model_ckpt = "LAION-Glyph-10M-Epoch-5"):
     allow_run_generation = False
     return output_str, None, allow_run_generation
 
-SAVE_MEMORY = True #False
+SAVE_MEMORY = False
 disable_verbosity()
 if SAVE_MEMORY:
     enable_sliced_attention()
