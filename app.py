@@ -110,7 +110,7 @@ def load_ckpt(model_ckpt = "LAION-Glyph-10M-Epoch-5"):
     allow_run_generation = False
     return output_str, None, allow_run_generation
 
-SAVE_MEMORY = False
+SAVE_MEMORY = True #False
 disable_verbosity()
 if SAVE_MEMORY:
     enable_sliced_attention()
@@ -173,7 +173,7 @@ with block:
             
             with gr.Accordion("Shared Advanced Options", open=False):  
                 with gr.Row():
-                    shared_num_samples = gr.Slider(label="Images", minimum=1, maximum=12, value=3, step=1)  
+                    shared_num_samples = gr.Slider(label="Images", minimum=1, maximum=12, value=5, step=1)  
                     shared_image_resolution = gr.Slider(label="Image Resolution", minimum=256, maximum=768, value=512, step=64, visible=False)  
                     shared_strength = gr.Slider(label="Control Strength", minimum=0.0, maximum=2.0, value=1.0, step=0.01, visible=False)  
                     shared_guess_mode = gr.Checkbox(label='Guess Mode', value=False, visible=False)  
