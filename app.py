@@ -129,7 +129,7 @@ description = """
 Github link: [Link](https://github.com/AIGText/GlyphControl-release).
 Report: [link](https://arxiv.org/pdf/2305.18259.pdf).\n
 You could try the listed examples at the bottom by clicking on them and modify the parameters for your own creation. We will update the examples progressively.\n
-(By using the "Parameter Summary" part, you can import or export the parameter settings of generated iamges in an easier way.)
+(By using the "Parameter Summary" part, you can import or export the parameter settings of generated images in an easier way.)
 """
 
 SPACE_ID = os.getenv('SPACE_ID')
