@@ -8,7 +8,7 @@ import time
 from PIL import Image
 from cldm.hack import disable_verbosity, enable_sliced_attention
 # from pytorch_lightning import seed_everything
-
+from example_list import examples
 def process_multi_wrapper(rendered_txt_0, rendered_txt_1, rendered_txt_2, rendered_txt_3,
                             shared_prompt,  
                             width_0, width_1, width_2, width_3,  
@@ -118,9 +118,11 @@ cfg = OmegaConf.load("config.yaml")
 model = load_model_from_config(cfg, "checkpoints/laion10M_epoch_6_model_wo_ema.ckpt", verbose=True)
 render_tool = Render_Text(model, save_memory = SAVE_MEMORY)
 
-
 description = """
 ## Control Stable Diffusion with Glyph Images
+Github link: [Link](https://github.com/AIGText/GlyphControl-release)\n
+Report: [link](https://arxiv.org/pdf/2305.18259.pdf)\n
+You could try the listed examples at the bottom by clicking on them. We will update the examples progressively.
 """
 
 SPACE_ID = os.getenv('SPACE_ID')
@@ -192,7 +194,26 @@ with block:
                 message = gr.Text(interactive=False, label = "Message")
             with gr.Row():
                 result_gallery = gr.Gallery(label='Images', show_label=False, elem_id="gallery").style(grid=2, height='auto')  
-    
+        export_button = gr.Button(value="Export Parameters")
+        gr.Examples(
+                examples= examples, #"./examples",
+                # [[, "LAION-Glyph-10M-Epoch-6"]],
+                        #   ["./assets/img2.jpg", "r50-hdetr_sam-vit-b"],
+                        #   ["./assets/img3.jpg", "r50-hdetr_sam-vit-b"],
+                        #   ["./assets/img4.jpg", "r50-hdetr_sam-vit-b"]],
+                inputs=[ model_ckpt, shared_prompt, 
+                        rendered_txt_0, width_0, ratio_0, top_left_x_0, top_left_y_0, yaw_0, num_rows_0, 
+                        rendered_txt_1, width_1, ratio_1, top_left_x_1, top_left_y_1, yaw_1, num_rows_1, 
+                        rendered_txt_2, width_2, ratio_2, top_left_x_2, top_left_y_2, yaw_2, num_rows_2, 
+                        rendered_txt_3, width_3, ratio_3, top_left_x_3, top_left_y_3, yaw_3, num_rows_3, 
+                        shared_num_samples, shared_image_resolution,  
+                        shared_ddim_steps, shared_guess_mode,  
+                        shared_strength, shared_scale, shared_seed,  
+                        shared_eta, shared_a_prompt, shared_n_prompt],
+                # outputs=output_img,
+                # fn=inference
+            )
+
     run_button.click(fn=process_multi_wrapper,  
                 inputs=[rendered_txt_0, rendered_txt_1, rendered_txt_2, rendered_txt_3,
                         shared_prompt,  
