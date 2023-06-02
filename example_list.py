@@ -18,8 +18,8 @@ example_2 = [
     'Monster Attacks Mars', 0.8, 0, 0.1, 0.45, 0, 1,
     "", 0.3, 0, 0.15, 0.65, 0, 1,
     "", 0.3, 0, 0.5, 0.65, 0, 1,
-    5,512,20,False,1,9,430637146,
-    0, "4K, dslr, best quality, extremely detailed",
+    5,512,20,False,1,9,430637146, 
+    0, "best quality, extremely detailed", #"4K, dslr, best quality, extremely detailed",
     "longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality"
 ]
 examples = [example_1, example_2]

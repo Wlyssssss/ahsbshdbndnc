@@ -110,6 +110,10 @@ def load_ckpt(model_ckpt = "LAION-Glyph-10M-Epoch-5"):
     allow_run_generation = False
     return output_str, None, allow_run_generation
 
+def export_parameters(*args):
+    return str(args)
+
+
 SAVE_MEMORY = True #False
 disable_verbosity()
 if SAVE_MEMORY:
@@ -122,7 +126,7 @@ description = """
 ## Control Stable Diffusion with Glyph Images
 Github link: [Link](https://github.com/AIGText/GlyphControl-release).
 Report: [link](https://arxiv.org/pdf/2305.18259.pdf).\n
-You could try the listed examples at the bottom by clicking on them. We will update the examples progressively.
+You could try the listed examples at the bottom by clicking on them and modify the parameters for your own creation. We will update the examples progressively.
 """
 
 SPACE_ID = os.getenv('SPACE_ID')
@@ -190,11 +194,12 @@ with block:
                                             value='longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality') 
         
         with gr.Accordion("Output", open=True):
+            with gr.Row():
+                export_button = gr.Button(value="Export Parameters")
             with gr.Row(): 
                 message = gr.Text(interactive=False, label = "Message")
             with gr.Row():
-                result_gallery = gr.Gallery(label='Images', show_label=False, elem_id="gallery").style(grid=2, height='auto')  
-        # export_button = gr.Button(value="Export Parameters")
+                result_gallery = gr.Gallery(label='Images', show_label=False, elem_id="gallery").style(grid=2, height='auto')    
         gr.Examples(
                 examples= examples, #"./examples",
                 # [[, "LAION-Glyph-10M-Epoch-6"]],
@@ -213,6 +218,17 @@ with block:
                 # outputs=output_img,
                 # fn=inference
             )
+    export_button.click(fn=export_parameters, 
+                        inputs = [model_ckpt, shared_prompt, 
+                                            rendered_txt_0, width_0, ratio_0, top_left_x_0, top_left_y_0, yaw_0, num_rows_0, 
+                                            rendered_txt_1, width_1, ratio_1, top_left_x_1, top_left_y_1, yaw_1, num_rows_1, 
+                                            rendered_txt_2, width_2, ratio_2, top_left_x_2, top_left_y_2, yaw_2, num_rows_2, 
+                                            rendered_txt_3, width_3, ratio_3, top_left_x_3, top_left_y_3, yaw_3, num_rows_3, 
+                                            shared_num_samples, shared_image_resolution,  
+                                            shared_ddim_steps, shared_guess_mode,  
+                                            shared_strength, shared_scale, shared_seed,  
+                                            shared_eta, shared_a_prompt, shared_n_prompt],
+                        outputs = [message] )
 
     run_button.click(fn=process_multi_wrapper,  
                 inputs=[rendered_txt_0, rendered_txt_1, rendered_txt_2, rendered_txt_3,
