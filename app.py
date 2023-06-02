@@ -120,8 +120,8 @@ render_tool = Render_Text(model, save_memory = SAVE_MEMORY)
 
 description = """
 ## Control Stable Diffusion with Glyph Images
-Github link: [Link](https://github.com/AIGText/GlyphControl-release)\n
-Report: [link](https://arxiv.org/pdf/2305.18259.pdf)\n
+Github link: [Link](https://github.com/AIGText/GlyphControl-release).
+Report: [link](https://arxiv.org/pdf/2305.18259.pdf).\n
 You could try the listed examples at the bottom by clicking on them. We will update the examples progressively.
 """
 
@@ -194,7 +194,7 @@ with block:
                 message = gr.Text(interactive=False, label = "Message")
             with gr.Row():
                 result_gallery = gr.Gallery(label='Images', show_label=False, elem_id="gallery").style(grid=2, height='auto')  
-        export_button = gr.Button(value="Export Parameters")
+        # export_button = gr.Button(value="Export Parameters")
         gr.Examples(
                 examples= examples, #"./examples",
                 # [[, "LAION-Glyph-10M-Epoch-6"]],
