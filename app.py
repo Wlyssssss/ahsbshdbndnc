@@ -113,6 +113,8 @@ def load_ckpt(model_ckpt = "LAION-Glyph-10M-Epoch-5"):
 def export_parameters(*args):
     return str(args)
 
+def import_parameters(parameters):
+    return eval(parameters)
 
 SAVE_MEMORY = True #False
 disable_verbosity()
@@ -126,7 +128,8 @@ description = """
 ## Control Stable Diffusion with Glyph Images
 Github link: [Link](https://github.com/AIGText/GlyphControl-release).
 Report: [link](https://arxiv.org/pdf/2305.18259.pdf).\n
-You could try the listed examples at the bottom by clicking on them and modify the parameters for your own creation. We will update the examples progressively.
+You could try the listed examples at the bottom by clicking on them and modify the parameters for your own creation. We will update the examples progressively.\n
+(By using the "Parameter Summary" part, you can import or export the parameter settings of generated iamges in an easier way.)
 """
 
 SPACE_ID = os.getenv('SPACE_ID')
@@ -143,8 +146,7 @@ with block:
     default_width = [0.3, 0.3, 0.3, 0.3]
     default_top_left_x = [0.35, 0.15, 0.15, 0.5]
     default_top_left_y = [0.4, 0.15, 0.65, 0.65]
-    with gr.Column():  
-            
+    with gr.Column():             
         with gr.Row(): 
             for i in range(4):  
                 with gr.Column():  
@@ -192,10 +194,15 @@ with block:
                     shared_a_prompt = gr.Textbox(label="Added Prompt", value='4K, dslr, best quality, extremely detailed')  
                     shared_n_prompt = gr.Textbox(label="Negative Prompt",  
                                             value='longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality') 
-        
-        with gr.Accordion("Output", open=True):
+        with gr.Accordion("Parameter Summary", open=False):
             with gr.Row():
-                export_button = gr.Button(value="Export Parameters")
+                parameters = gr.Text(label = "Parameters")   
+            with gr.Row():  
+                import_button = gr.Button(value="Import") 
+                export_button = gr.Button(value="Export")     
+        with gr.Accordion("Output", open=True):
+            # with gr.Row():
+            #     export_button = gr.Button(value="Export Parameters")
             with gr.Row(): 
                 message = gr.Text(interactive=False, label = "Message")
             with gr.Row():
@@ -228,7 +235,20 @@ with block:
                                             shared_ddim_steps, shared_guess_mode,  
                                             shared_strength, shared_scale, shared_seed,  
                                             shared_eta, shared_a_prompt, shared_n_prompt],
-                        outputs = [message] )
+                        outputs = [parameters] )
+    
+    import_button.click(fn=import_parameters, 
+                    inputs = [parameters],
+                    outputs = [model_ckpt, shared_prompt, 
+                                        rendered_txt_0, width_0, ratio_0, top_left_x_0, top_left_y_0, yaw_0, num_rows_0, 
+                                        rendered_txt_1, width_1, ratio_1, top_left_x_1, top_left_y_1, yaw_1, num_rows_1, 
+                                        rendered_txt_2, width_2, ratio_2, top_left_x_2, top_left_y_2, yaw_2, num_rows_2, 
+                                        rendered_txt_3, width_3, ratio_3, top_left_x_3, top_left_y_3, yaw_3, num_rows_3, 
+                                        shared_num_samples, shared_image_resolution,  
+                                        shared_ddim_steps, shared_guess_mode,  
+                                        shared_strength, shared_scale, shared_seed,  
+                                        shared_eta, shared_a_prompt, shared_n_prompt]
+                     )
 
     run_button.click(fn=process_multi_wrapper,  
                 inputs=[rendered_txt_0, rendered_txt_1, rendered_txt_2, rendered_txt_3,
