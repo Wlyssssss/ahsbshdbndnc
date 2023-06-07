@@ -86,18 +86,14 @@ def load_ckpt(model_ckpt = "LAION-Glyph-10M-Epoch-5"):
         time.sleep(2)
         print("empty the cuda cache")
 
-    # if model_ckpt == "LAION-Glyph-1M":
-    #     model = load_model_ckpt(model, "laion1M_model_wo_ema.ckpt")
-    # if model_ckpt == "LAION-Glyph-10M-Epoch-5":
-    #     model = load_model_ckpt(model, "laion10M_epoch_5_model_wo_ema.ckpt")
     if model_ckpt == "LAION-Glyph-10M-Epoch-6":
-        model = load_model_ckpt(model, "checkpoints/laion10M_epoch_6_model_wo_ema.ckpt")
+        model = load_model_ckpt(model, "checkpoints/laion10M_epoch_6_model_ema_only.ckpt")
     elif model_ckpt == "TextCaps-5K-Epoch-10":
-        model = load_model_ckpt(model, "checkpoints/textcaps5K_epoch_10_model_wo_ema.ckpt")
+        model = load_model_ckpt(model, "checkpoints/textcaps5K_epoch_10_model_ema_only.ckpt")
     elif model_ckpt == "TextCaps-5K-Epoch-20":
-        model = load_model_ckpt(model, "checkpoints/textcaps5K_epoch_20_model_wo_ema.ckpt")
+        model = load_model_ckpt(model, "checkpoints/textcaps5K_epoch_20_model_ema_only.ckpt")
     elif model_ckpt == "TextCaps-5K-Epoch-40":
-        model = load_model_ckpt(model, "checkpoints/textcaps5K_epoch_40_model_wo_ema.ckpt")
+        model = load_model_ckpt(model, "checkpoints/textcaps5K_epoch_40_model_ema_only.ckpt")
 
     render_tool = Render_Text(model, save_memory = SAVE_MEMORY)
     output_str = f"already change the model checkpoint to {model_ckpt}"
@@ -121,7 +117,7 @@ disable_verbosity()
 if SAVE_MEMORY:
     enable_sliced_attention()
 cfg = OmegaConf.load("config.yaml")
-model = load_model_from_config(cfg, "checkpoints/laion10M_epoch_6_model_wo_ema.ckpt", verbose=True)
+model = load_model_from_config(cfg, "checkpoints/laion10M_epoch_6_model_ema_only.ckpt", verbose=True)
 render_tool = Render_Text(model, save_memory = SAVE_MEMORY)
 
 description = """
