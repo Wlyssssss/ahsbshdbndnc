@@ -8,4 +8,4 @@ pytorch-lightning==1.6.5
 transformers
 open_clip_torch
 ninja
-xformers==0.0.21.dev541
+xformers
